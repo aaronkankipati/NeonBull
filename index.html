@@ -503,12 +503,19 @@ canvas{display:block;width:100%!important}
     </div>
     <div class="collapse-body">
       <div class="collapse-inner">
-        <div class="chart-wrap" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
-          <canvas id="chart" height="160"></canvas></div>
-          <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-            <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
+        <div style="position:relative">
+          <!-- Scrollable chart area (no x-axis labels) -->
+          <div class="chart-wrap" id="chartWrapOuter" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
+            <canvas id="chart" height="148"></canvas></div>
+            <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
+            </div>
           </div>
+          <!-- Fixed x-axis canvas — always visible, syncs scroll offset -->
+          <canvas id="chartXAxis" height="28" style="display:block;width:100%"></canvas>
+          <!-- Fixed y-axis overlay — sits over the scrollable area, always visible -->
+          <canvas id="chartYAxis" style="position:absolute;top:0;left:0;pointer-events:none;z-index:2"></canvas>
         </div>
       </div>
     </div>
@@ -734,38 +741,73 @@ function drawChart(labels,values){
   const canvas=document.getElementById("chart");
   if(!canvas||!values.length)return;
   const dpr=devicePixelRatio||1;
-  const container=canvas.closest(".chart-wrap");
+  const container=document.getElementById("chartWrapOuter");
   const containerW=container?container.clientWidth:canvas.parentElement.clientWidth;
   const MIN_PX_PER_PT=28;
   const naturalW=containerW-32;
   const neededW=Math.max(naturalW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+60:naturalW));
-  const W=neededW,H=160;
+  const W=neededW,H=148;
   const scroller=document.getElementById("chartScroller");
   if(scroller)scroller.style.width=(W+32)+"px";
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+"px";canvas.style.height=H+"px";
-  if(container&&neededW>naturalW)setTimeout(()=>{container.scrollLeft=container.scrollWidth;},50);
+  const isScrolling=neededW>naturalW;
+  if(container&&isScrolling)setTimeout(()=>{container.scrollLeft=container.scrollWidth;},50);
+  // Set up fixed x-axis canvas
+  const xAxisCanvas=document.getElementById("chartXAxis");
+  if(xAxisCanvas){
+    xAxisCanvas.width=containerW*dpr;
+    xAxisCanvas.height=28*dpr;
+    xAxisCanvas.style.width=containerW+"px";
+    xAxisCanvas.style.height="28px";
+    // Sync scroll: redraw x-axis labels based on scroll offset
+    const drawXAxis=(scrollLeft)=>{
+      const xc=xAxisCanvas.getContext("2d");xc.clearRect(0,0,containerW*dpr,28*dpr);
+      xc.scale(dpr,dpr);xc.fillStyle="#3a4a65";xc.font="9px JetBrains Mono";
+      const pad2={l:52,r:8};const w2=W-pad2.l-pad2.r;const xs2=w2/(values.length-1||1);
+      const step=isScrolling?Math.max(1,Math.floor(values.length/12)):Math.max(1,Math.floor(labels.length/4));
+      labels.forEach((l,i)=>{
+        if(i%step!==0&&i!==labels.length-1)return;
+        const lbl=l.slice(5);
+        const lw=xc.measureText(lbl).width;
+        const absX=pad2.l+i*xs2;
+        const screenX=absX-scrollLeft;
+        if(screenX<pad2.l-lw||screenX>containerW)return;
+        let x=screenX-lw/2;
+        if(i===0)x=Math.max(pad2.l,screenX);
+        if(i===labels.length-1)x=Math.min(containerW-lw-4,screenX-lw);
+        xc.fillText(lbl,x,14);
+      });
+    };
+    drawXAxis(container?container.scrollLeft:0);
+    // Remove old listener if any
+    if(container._xAxisHandler)container.removeEventListener("scroll",container._xAxisHandler);
+    container._xAxisHandler=()=>drawXAxis(container.scrollLeft);
+    if(container)container.addEventListener("scroll",container._xAxisHandler,{passive:true});
+  }
   const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
-  const pad={t:10,r:8,b:28,l:52};
+  const YPAD=52; // left space reserved for y-axis — matches overlay width
+  const pad={t:10,r:8,b:8,l:YPAD};
   const w=W-pad.l-pad.r,h=H-pad.t-pad.b;
   const mn=Math.min(...values)*0.998,mx=Math.max(...values)*1.002;
   const ys=h/(mx-mn||1),xs=w/(values.length-1||1);
   const pts=values.map((v,i)=>({x:pad.l+i*xs,y:pad.t+(mx-v)*ys}));
   const isUp=values[values.length-1]>=values[0];
   const lc=isUp?"#00ff88":"#ff3d5a";
+
+  // Draw horizontal grid lines only (no y labels — those go on overlay)
   const by=pad.t+(mx-10000)*ys;
   if(by>pad.t&&by<pad.t+h){
     ctx.strokeStyle="#f5a62330";ctx.lineWidth=1;ctx.setLineDash([4,4]);
     ctx.beginPath();ctx.moveTo(pad.l,by);ctx.lineTo(pad.l+w,by);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle="#f5a62366";ctx.font="9px JetBrains Mono";ctx.fillText("₹10K",2,by+4);
   }
   for(let i=0;i<=3;i++){
     const y=pad.t+h/3*i;
     ctx.strokeStyle="#1a2035";ctx.lineWidth=1;ctx.setLineDash([]);
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+w,y);ctx.stroke();
-    ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
-    ctx.fillText("₹"+(mx-(mx-mn)/3*i).toFixed(0),2,y+4);
   }
+
+  // Area fill + line
   const g=ctx.createLinearGradient(0,pad.t,0,pad.t+h);
   g.addColorStop(0,lc+"44");g.addColorStop(1,lc+"00");
   ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+h);
@@ -776,22 +818,34 @@ function drawChart(labels,values){
   const ep=pts[pts.length-1];
   ctx.beginPath();ctx.arc(ep.x,ep.y,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();
   ctx.beginPath();ctx.arc(ep.x,ep.y,8,0,Math.PI*2);ctx.fillStyle=lc+"30";ctx.fill();
-  ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
-  const isScrolling=neededW>naturalW;
-  const step=isScrolling?1:Math.max(1,Math.floor(labels.length/4));
-  labels.forEach((l,i)=>{
-    if(i%step!==0&&i!==labels.length-1) return; // always draw last label
-    const lbl=l.slice(5); // "05-05"
-    const lw=ctx.measureText(lbl).width;
-    const isLast=i===labels.length-1;
-    const isFirst=i===0;
-    // First: left-align, Last: right-align, others: centre
-    let x=pad.l+i*xs;
-    if(isFirst) x=pad.l;
-    else if(isLast) x=pad.l+w-lw;
-    else x=pad.l+i*xs-lw/2;
-    ctx.fillText(lbl,x,H-4);
-  });
+
+  // ── Fixed y-axis overlay ──
+  const yCanvas=document.getElementById("chartYAxis");
+  if(yCanvas){
+    const yW=YPAD,yH=H;
+    yCanvas.width=yW*dpr;yCanvas.height=yH*dpr;
+    yCanvas.style.width=yW+"px";yCanvas.style.height=yH+"px";
+    const yc=yCanvas.getContext("2d");yc.scale(dpr,dpr);
+    // Background strip matching card bg
+    yc.fillStyle="var(--card, #0e1220)";
+    // Use a solid dark fill so it covers the scrolling chart beneath
+    yc.fillStyle="#0e1220";yc.fillRect(0,0,yW,yH);
+    yc.fillStyle="#3a4a65";yc.font="9px JetBrains Mono";
+    // ₹10K baseline label
+    if(by>pad.t&&by<pad.t+h){
+      yc.fillStyle="#f5a62366";yc.fillText("₹10K",2,by+4);
+    }
+    // Grid labels
+    for(let i=0;i<=3;i++){
+      const y=pad.t+h/3*i;
+      yc.fillStyle="#3a4a65";
+      yc.fillText("₹"+(mx-(mx-mn)/3*i).toFixed(0),2,y+4);
+    }
+    // Right border line
+    yc.strokeStyle="#1a2035";yc.lineWidth=1;
+    yc.beginPath();yc.moveTo(yW-1,pad.t);yc.lineTo(yW-1,pad.t+h);yc.stroke();
+  }
+  // x-axis labels are drawn on the fixed #chartXAxis canvas — not here
 }
 
 // ── RENDER ────────────────────────────────────────────────────
@@ -1053,9 +1107,12 @@ async function loadAll(){
       cb.style.display="flex";
       const hn=port.todaySession.holidayName;
       const nd=port.todaySession.nextTradingDate;
-      const nextLabel=nd?("Resumes "+new Date(nd+"T00:00:00Z").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})):"Next trading day";
-      const isWeekend=!hn||hn==="Weekend";
-      document.getElementById("closedMsg").textContent=isWeekend?"Weekend — no trade today":hn+" — market holiday";
+      const nextDateStr=nd?new Date(nd+"T00:00:00Z").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"}):null;
+      const nextLabel=nextDateStr?("Next trading day: "+nextDateStr):"Next trading day";
+      const isWeekend=!hn||hn==="Weekend"||hn==="weekend";
+      // Clean holiday name — strip redundant suffixes like "market holiday" if already implied
+      const cleanHn=hn?hn.replace(/[-–—]?\s*market\s*holiday/gi,"").trim():"";
+      document.getElementById("closedMsg").textContent=isWeekend?"Weekend — market closed":cleanHn+" — market holiday";
       document.getElementById("closedNext").textContent=nextLabel;
     }
     renderHero(port);renderKPIs(port);
