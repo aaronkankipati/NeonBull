@@ -1055,7 +1055,8 @@ async function loadAll(){
       const nd=port.todaySession.nextTradingDate;
       const nextLabel=nd?("Resumes "+new Date(nd+"T00:00:00Z").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})):"Next trading day";
       const isWeekend=!hn||hn==="Saturday"||hn==="Sunday"||hn==="Weekend";
-      document.getElementById("closedMsg").textContent=isWeekend?"Weekend — markets closed":("Market holiday: "+hn);
+      const isUnknown=hn==="Market Holiday";
+      document.getElementById("closedMsg").textContent=isWeekend?"Weekend — markets closed":isUnknown?"Markets closed today":("Market holiday: "+hn);
       document.getElementById("closedNext").textContent=nextLabel;
     }
     renderHero(port);renderKPIs(port);
