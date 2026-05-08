@@ -394,6 +394,7 @@ canvas{display:block;width:100%!important}
       <div class="status-icon" id="statusIcon">—</div>
       <div class="status-headline" id="statusHeadline">—</div>
       <div class="status-sub" id="statusSub">—</div>
+      <div style="margin-top:10px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);padding-top:8px">Started · 4 May 2026</div>
     </div>
 
     <!-- Stats card -->
@@ -502,8 +503,8 @@ canvas{display:block;width:100%!important}
     </div>
     <div class="collapse-body">
       <div class="collapse-inner">
-        <div class="chart-wrap" style="position:relative">
-          <canvas id="chart" height="160"></canvas>
+        <div class="chart-wrap" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
+          <canvas id="chart" height="160"></canvas></div>
           <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
@@ -733,9 +734,17 @@ function drawChart(labels,values){
   const canvas=document.getElementById("chart");
   if(!canvas||!values.length)return;
   const dpr=devicePixelRatio||1;
-  const W=canvas.parentElement.clientWidth-32,H=160;
+  const container=canvas.closest(".chart-wrap");
+  const containerW=container?container.clientWidth:canvas.parentElement.clientWidth;
+  const MIN_PX_PER_PT=28;
+  const naturalW=containerW-32;
+  const neededW=Math.max(naturalW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+60:naturalW));
+  const W=neededW,H=160;
+  const scroller=document.getElementById("chartScroller");
+  if(scroller)scroller.style.width=(W+32)+"px";
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+"px";canvas.style.height=H+"px";
+  if(container&&neededW>naturalW)setTimeout(()=>{container.scrollLeft=container.scrollWidth;},50);
   const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
   const pad={t:10,r:8,b:28,l:52};
   const w=W-pad.l-pad.r,h=H-pad.t-pad.b;
@@ -768,7 +777,8 @@ function drawChart(labels,values){
   ctx.beginPath();ctx.arc(ep.x,ep.y,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();
   ctx.beginPath();ctx.arc(ep.x,ep.y,8,0,Math.PI*2);ctx.fillStyle=lc+"30";ctx.fill();
   ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
-  const step=Math.max(1,Math.floor(labels.length/4));
+  const isScrolling=neededW>naturalW;
+  const step=isScrolling?1:Math.max(1,Math.floor(labels.length/4));
   labels.forEach((l,i)=>{
     if(i%step!==0&&i!==labels.length-1) return; // always draw last label
     const lbl=l.slice(5); // "05-05"
