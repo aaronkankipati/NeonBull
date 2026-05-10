@@ -394,7 +394,13 @@ canvas{display:block;width:100%!important}
       <div class="status-icon" id="statusIcon">—</div>
       <div class="status-headline" id="statusHeadline">—</div>
       <div class="status-sub" id="statusSub">—</div>
-      <div style="margin-top:10px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);padding-top:8px">Started · 4 May 2026</div>
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+        <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)" id="statusStarted">Started · —</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Best<br><span id="statBest" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--neon);letter-spacing:0;text-transform:none">—</span></div>
+          <div style="text-align:right;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Worst<br><span id="statWorst" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--bear);letter-spacing:0;text-transform:none">—</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Stats card -->
@@ -504,7 +510,8 @@ canvas{display:block;width:100%!important}
     <div class="collapse-body">
       <div class="collapse-inner">
         <div class="chart-wrap" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
-          <canvas id="chart" height="160"></canvas></div>
+          <canvas id="chart" height="180"></canvas></div>
+          <div id="chartTip" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.68rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
           <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
@@ -723,14 +730,14 @@ function toggleSection(id){
   const s=document.getElementById(id);
   s.classList.toggle("open");
   if(id==="sec-chart"&&s.classList.contains("open")&&window._chartData)
-    setTimeout(()=>drawChart(window._chartData.labels,window._chartData.values),50);
+    setTimeout(()=>drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl),50);
   // Refresh fades when sections open — content now visible
   if(id==="sec-positions") setTimeout(()=>updateHint("posCard","posHint"),450);
   if(id==="sec-trades")    setTimeout(()=>updateHint("tradesCard","tradesHint"),450);
 }
 
 // ── CHART ─────────────────────────────────────────────────────
-function drawChart(labels,values){
+function drawChart(labels,values,dayPnl){
   const canvas=document.getElementById("chart");
   if(!canvas||!values.length)return;
   const dpr=devicePixelRatio||1;
@@ -739,26 +746,30 @@ function drawChart(labels,values){
   const MIN_PX_PER_PT=28;
   const naturalW=containerW-32;
   const neededW=Math.max(naturalW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+60:naturalW));
-  const W=neededW,H=160;
+  const W=neededW,H=180;
   const scroller=document.getElementById("chartScroller");
   if(scroller)scroller.style.width=(W+32)+"px";
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+"px";canvas.style.height=H+"px";
   if(container&&neededW>naturalW)setTimeout(()=>{container.scrollLeft=container.scrollWidth;},50);
   const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
+  const BAR_H=18;
   const pad={t:10,r:8,b:28,l:52};
-  const w=W-pad.l-pad.r,h=H-pad.t-pad.b;
+  const chartH=H-BAR_H-4;
+  const w=W-pad.l-pad.r,h=chartH-pad.t-pad.b;
   const mn=Math.min(...values)*0.998,mx=Math.max(...values)*1.002;
   const ys=h/(mx-mn||1),xs=w/(values.length-1||1);
   const pts=values.map((v,i)=>({x:pad.l+i*xs,y:pad.t+(mx-v)*ys}));
   const isUp=values[values.length-1]>=values[0];
   const lc=isUp?"#00ff88":"#ff3d5a";
+  // baseline ₹10K line
   const by=pad.t+(mx-10000)*ys;
   if(by>pad.t&&by<pad.t+h){
     ctx.strokeStyle="#f5a62330";ctx.lineWidth=1;ctx.setLineDash([4,4]);
     ctx.beginPath();ctx.moveTo(pad.l,by);ctx.lineTo(pad.l+w,by);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle="#f5a62366";ctx.font="9px JetBrains Mono";ctx.fillText("₹10K",2,by+4);
   }
+  // grid lines
   for(let i=0;i<=3;i++){
     const y=pad.t+h/3*i;
     ctx.strokeStyle="#1a2035";ctx.lineWidth=1;ctx.setLineDash([]);
@@ -766,32 +777,65 @@ function drawChart(labels,values){
     ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
     ctx.fillText("₹"+(mx-(mx-mn)/3*i).toFixed(0),2,y+4);
   }
+  // area fill
   const g=ctx.createLinearGradient(0,pad.t,0,pad.t+h);
   g.addColorStop(0,lc+"44");g.addColorStop(1,lc+"00");
   ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+h);
   pts.forEach(p=>ctx.lineTo(p.x,p.y));
   ctx.lineTo(pts[pts.length-1].x,pad.t+h);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  // line
   ctx.beginPath();ctx.strokeStyle=lc;ctx.lineWidth=2.5;ctx.lineJoin="round";
   pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
+  // end dot
   const ep=pts[pts.length-1];
   ctx.beginPath();ctx.arc(ep.x,ep.y,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();
   ctx.beginPath();ctx.arc(ep.x,ep.y,8,0,Math.PI*2);ctx.fillStyle=lc+"30";ctx.fill();
+  // day P&L mini bars (bottom strip)
+  if(dayPnl&&dayPnl.length===values.length){
+    const barY=chartH+2;
+    const maxAbs=Math.max(...dayPnl.map(Math.abs),1);
+    const bw=Math.max(3,xs*0.55);
+    dayPnl.forEach((dp,i)=>{
+      const bh=Math.max(2,Math.abs(dp)/maxAbs*(BAR_H-4));
+      const bx=pad.l+i*xs-bw/2;
+      ctx.fillStyle=dp>=0?"#00ff8866":"#ff3d5a66";
+      ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,barY+(BAR_H-4-bh),bw,bh,1):ctx.rect(bx,barY+(BAR_H-4-bh),bw,bh);
+      ctx.fill();
+    });
+  }
+  // X-axis labels
   ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
   const isScrolling=neededW>naturalW;
   const step=isScrolling?1:Math.max(1,Math.floor(labels.length/4));
   labels.forEach((l,i)=>{
-    if(i%step!==0&&i!==labels.length-1) return; // always draw last label
-    const lbl=l.slice(5); // "05-05"
+    if(i%step!==0&&i!==labels.length-1) return;
+    const lbl=l.slice(5);
     const lw=ctx.measureText(lbl).width;
-    const isLast=i===labels.length-1;
-    const isFirst=i===0;
-    // First: left-align, Last: right-align, others: centre
+    const isLast=i===labels.length-1,isFirst=i===0;
     let x=pad.l+i*xs;
     if(isFirst) x=pad.l;
     else if(isLast) x=pad.l+w-lw;
     else x=pad.l+i*xs-lw/2;
     ctx.fillText(lbl,x,H-4);
   });
+  // Tap tooltip — find nearest data point
+  const tip=document.getElementById("chartTip");
+  function showChartTip(e){
+    const rect=canvas.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+    const scale=W/rect.width;
+    const rx=cx*scale;
+    let closest=0,minD=Infinity;
+    pts.forEach((p,i)=>{const d=Math.abs(p.x-rx);if(d<minD){minD=d;closest=i;}});
+    if(!tip)return;
+    const dp=dayPnl?.[closest]??null;
+    const v=values[closest],lbl=labels[closest]?.slice(5)||"";
+    tip.textContent=lbl+" · "+fINR(v)+(dp!=null?" · day "+(dp>=0?"+":"")+fINR(dp):"");
+    tip.style.display="block";
+    setTimeout(()=>{if(tip)tip.style.display="none";},2200);
+  }
+  canvas.onclick=showChartTip;
+  canvas.ontouchstart=e=>{e.preventDefault();showChartTip(e);};
 }
 
 // ── RENDER ────────────────────────────────────────────────────
@@ -829,10 +873,22 @@ function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
   // Breakdown lives in the Total P&L ? tooltip — no standalone card needed
 }
 
-function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl){
+function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
   document.getElementById("statDays").textContent=exp?.totalDays||0;
   document.getElementById("statProfit").textContent=exp?.profitDays||0;
   document.getElementById("statLoss").textContent=exp?.lossDays||0;
+  // New rows
+  const bestEl=document.getElementById("statBest");
+  if(bestEl) bestEl.textContent=exp?.bestDay?.pnl!=null?(exp.bestDay.pnl>=0?"+":"")+fINR(exp.bestDay.pnl):"—";
+  const worstEl=document.getElementById("statWorst");
+  if(worstEl) worstEl.textContent=exp?.worstDay?.pnl!=null?fINR(exp.worstDay.pnl):"—";
+  // Dynamic started date from createdAt
+  const startedEl=document.getElementById("statusStarted");
+  if(startedEl&&createdAt){
+    const d=new Date(createdAt);
+    const label=d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+    startedEl.textContent="Started · "+label;
+  }
   const p=totalPnl||0,d2=exp?.totalDays||0;
   const sc=document.getElementById("statusCard");
   const icon=document.getElementById("statusIcon"),hl=document.getElementById("statusHeadline"),sub=document.getElementById("statusSub");
@@ -871,7 +927,10 @@ function renderAI(ins){
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
   document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
-  body.innerHTML=`<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
+  const assessBlock=ins.portfolioAssessment
+    ?`<div style="font-size:.74rem;color:var(--sub);font-style:italic;line-height:1.65;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">${ins.portfolioAssessment}</div>`
+    :"";
+  body.innerHTML=`${assessBlock}<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
     <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
     <div class="ai-analysis">${ins.analysis||"—"}</div>
     ${ins.riskAssessment?`<div class="ai-risk">${ins.riskAssessment}</div>`:""}
@@ -884,15 +943,18 @@ function renderPositions(positions){
   if(!positions?.length){card.innerHTML='<div class="empty"><span class="empty-icon">📭</span>No open positions yet.</div>';updateHint("posCard","posHint");return;}
   card.innerHTML=positions.map(p=>{
     const hasGain=p.unrealisedPnl>0.005,hasLoss=p.unrealisedPnl<-0.005;
-    const gainCls=hasGain?"bull":hasLoss?"bear":"";
-    // Plain-English gain line
     let gainLine;
     if(hasGain)        gainLine=`<span class="bull">+${fINR(p.unrealisedPnl)} (${fPct(p.unrealisedPnlPct)})</span>`;
     else if(hasLoss)   gainLine=`<span class="bear">${fINR(p.unrealisedPnl)} (${fPct(p.unrealisedPnlPct)})</span>`;
     else               gainLine=`<span style="color:var(--sub)">No gain yet</span>`;
+    // Today's market move chip
+    const cp=p.changePct??null;
+    const todayChip=cp!==null
+      ?`<span style="font-size:.58rem;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:4px;${cp>=0?'background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)':'background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)'}">${cp>=0?"+":""}${cp.toFixed(2)}% today</span>`
+      :"";
     return`<div class="pos-item">
       <div class="pos-top">
-        <div class="pos-label">${p.label}</div>
+        <div class="pos-label" style="display:flex;align-items:center;gap:0">${p.label}${todayChip}</div>
         <div class="pos-pnl">${gainLine}</div>
       </div>
       <div class="pos-row">
@@ -965,16 +1027,25 @@ function renderTrades(trades){
     const amtLine=isBuy
       ?`Spent ${fINR(t.total)} · Fees ${fINR(t.charges||0)}`
       :`Received ${fINR(t.netProceeds||t.total)} after fees`;
+    // Realised P&L badge for SELLs
+    const pnlBadge=(!isBuy&&t.netPnl!=null)
+      ?`<span style="font-size:.6rem;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:6px;${t.netPnl>=0?'background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)':'background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)'}">${t.netPnl>=0?"+":""}${fINR(t.netPnl)}</span>`
+      :"";
+    // Micro detail line — date · qty @ price
+    const microLine=(t.date||t.qty||t.price)
+      ?`<div style="font-size:.62rem;color:var(--muted);margin-top:3px;font-family:var(--mono)">${[t.date?t.date.slice(5):"",t.qty?t.qty+"sh":"",(t.price&&!isBuy)?"@ "+fINR(t.price):""].filter(Boolean).join(" · ")}</div>`
+      :"";
     return`<div class="trade-item">
       <div class="trade-top">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span class="trade-action ${actCls}">${actTxt}</span>
           <span class="trade-label ${sc}">${session}</span>
           <span style="font-size:.66rem;color:var(--sub)">${t.symbol||""}</span>
         </div>
       </div>
-      <div style="font-size:.78rem;color:var(--sub);margin:3px 0">${amtLine}</div>
+      <div style="font-size:.78rem;color:var(--sub);margin:3px 0;display:flex;align-items:center;flex-wrap:wrap">${amtLine}${pnlBadge}</div>
       <div style="font-size:.78rem;color:var(--text);margin-top:2px">${reason}</div>
+      ${microLine}
     </div>`;
   }).join("");
 }
@@ -1060,11 +1131,11 @@ async function loadAll(){
       document.getElementById("closedNext").textContent=nextLabel;
     }
     renderHero(port);renderKPIs(port);
-    renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl);
+    renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl,port.createdAt,port.lastRunAt);
     renderSession(port.todaySession||{});renderAI(port.insight);
     renderPositions(port.positions||[]);renderTrades(port.recentTrades||[]);
     if(port.snapshots?.length){
-      window._chartData={labels:port.snapshots.map(s=>s.date),values:port.snapshots.map(s=>s.totalValue)};
+      window._chartData={labels:port.snapshots.map(s=>s.date),values:port.snapshots.map(s=>s.totalValue),dayPnl:port.snapshots.map(s=>s.dayPnl||0)};
       document.getElementById("chartMeta").textContent=fPct(port.totalPnlPct)+" total return";
       const sec=document.getElementById("sec-chart");
       // Show empty state if only 1 data point — not enough for a meaningful line
@@ -1073,7 +1144,7 @@ async function loadAll(){
       if(chartEmpty){chartEmpty.style.display=hasEnoughData?"none":"flex";}
       const chartEl=document.getElementById("chart");
       if(chartEl){chartEl.style.display=hasEnoughData?"block":"none";}
-      if(hasEnoughData&&sec.classList.contains("open"))drawChart(window._chartData.labels,window._chartData.values);
+      if(hasEnoughData&&sec.classList.contains("open"))drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl);
     }
   }catch(e){
     const b=document.getElementById("setupBanner");b.style.display="block";
