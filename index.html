@@ -168,8 +168,8 @@ body{
 .scroll-hint svg{opacity:.5}
 
 /* ── CHART ── */
-.chart-wrap{padding:16px}
-canvas{display:block;width:100%!important}
+.chart-wrap{padding:12px 12px 12px 0}
+.chart-wrap canvas{display:block;width:auto!important}
 
 /* ── AI CARD ── */
 .ai-body{padding:16px}
@@ -509,9 +509,14 @@ canvas{display:block;width:100%!important}
     </div>
     <div class="collapse-body">
       <div class="collapse-inner">
-        <div class="chart-wrap" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
-          <canvas id="chart" height="180"></canvas></div>
-          <div id="chartTip" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.68rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
+        <div class="chart-wrap" style="position:relative;display:flex;align-items:flex-start">
+          <!-- Static Y-axis canvas -->
+          <canvas id="chartYAxis" style="flex-shrink:0;display:block"></canvas>
+          <!-- Scrollable plot area -->
+          <div id="chartScroller" style="flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent;position:relative">
+            <canvas id="chart"></canvas>
+            <div id="chartTip" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.68rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
+          </div>
           <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
@@ -739,95 +744,144 @@ function toggleSection(id){
 // ── CHART ─────────────────────────────────────────────────────
 function drawChart(labels,values,dayPnl){
   const canvas=document.getElementById("chart");
-  if(!canvas||!values.length)return;
+  const yCanvas=document.getElementById("chartYAxis");
+  if(!canvas||!yCanvas||!values.length)return;
+
   const dpr=devicePixelRatio||1;
-  const container=canvas.closest(".chart-wrap");
-  const containerW=container?container.clientWidth:canvas.parentElement.clientWidth;
-  const MIN_PX_PER_PT=28;
-  const naturalW=containerW-32;
-  const neededW=Math.max(naturalW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+60:naturalW));
-  const W=neededW,H=180;
-  const scroller=document.getElementById("chartScroller");
-  if(scroller)scroller.style.width=(W+32)+"px";
-  canvas.width=W*dpr;canvas.height=H*dpr;
-  canvas.style.width=W+"px";canvas.style.height=H+"px";
-  if(container&&neededW>naturalW)setTimeout(()=>{container.scrollLeft=container.scrollWidth;},50);
-  const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
-  const BAR_H=18;
-  const pad={t:10,r:8,b:28,l:52};
+  const H=180,BAR_H=18;
+  const pad={t:10,r:16,b:28};
+  const Y_W=50; // fixed Y-axis panel width
   const chartH=H-BAR_H-4;
-  const w=W-pad.l-pad.r,h=chartH-pad.t-pad.b;
+  const innerH=chartH-pad.t-pad.b;
+
+  // Width for the scrollable plot — enough px per point so data breathes
+  const scroller=document.getElementById("chartScroller");
+  const scrollerW=scroller?scroller.clientWidth:300;
+  const MIN_PX_PER_PT=32;
+  const plotW=Math.max(scrollerW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+pad.r+16:scrollerW));
+  const xs=plotW>0?(plotW-pad.r)/(values.length-1||1):1;
+
+  // Value extents
   const mn=Math.min(...values)*0.998,mx=Math.max(...values)*1.002;
-  const ys=h/(mx-mn||1),xs=w/(values.length-1||1);
-  const pts=values.map((v,i)=>({x:pad.l+i*xs,y:pad.t+(mx-v)*ys}));
+  const ys=innerH/(mx-mn||1);
+  const pts=values.map((v,i)=>({x:i*xs,y:pad.t+(mx-v)*ys}));
   const isUp=values[values.length-1]>=values[0];
   const lc=isUp?"#00ff88":"#ff3d5a";
-  // baseline ₹10K line
-  const by=pad.t+(mx-10000)*ys;
-  if(by>pad.t&&by<pad.t+h){
-    ctx.strokeStyle="#f5a62330";ctx.lineWidth=1;ctx.setLineDash([4,4]);
-    ctx.beginPath();ctx.moveTo(pad.l,by);ctx.lineTo(pad.l+w,by);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle="#f5a62366";ctx.font="9px JetBrains Mono";ctx.fillText("₹10K",2,by+4);
-  }
-  // grid lines
+
+  // ── Y-AXIS CANVAS (static, left panel) ──────────────────────
+  yCanvas.width=Y_W*dpr;
+  yCanvas.height=H*dpr;
+  yCanvas.style.width=Y_W+"px";
+  yCanvas.style.height=H+"px";
+  const yCtx=yCanvas.getContext("2d");
+  yCtx.scale(dpr,dpr);
+
+  // Grid value labels
+  yCtx.fillStyle="#3a4a65";
+  yCtx.font="9px JetBrains Mono";
+  yCtx.textAlign="right";
   for(let i=0;i<=3;i++){
-    const y=pad.t+h/3*i;
-    ctx.strokeStyle="#1a2035";ctx.lineWidth=1;ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+w,y);ctx.stroke();
-    ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
-    ctx.fillText("₹"+(mx-(mx-mn)/3*i).toFixed(0),2,y+4);
+    const v=mx-(mx-mn)/3*i;
+    const y=pad.t+innerH/3*i;
+    yCtx.fillText("₹"+v.toFixed(0),Y_W-4,y+4);
   }
-  // area fill
-  const g=ctx.createLinearGradient(0,pad.t,0,pad.t+h);
+  // ₹10K baseline label on Y axis
+  const by=pad.t+(mx-10000)*ys;
+  if(by>pad.t&&by<pad.t+innerH){
+    yCtx.fillStyle="#f5a62399";
+    yCtx.fillText("₹10K",Y_W-4,by+4);
+  }
+  // Thin right border to visually separate axis from plot
+  yCtx.strokeStyle="#1a2035";
+  yCtx.lineWidth=1;
+  yCtx.beginPath();
+  yCtx.moveTo(Y_W-0.5,pad.t);
+  yCtx.lineTo(Y_W-0.5,chartH+BAR_H);
+  yCtx.stroke();
+
+  // ── PLOT CANVAS (scrollable) ─────────────────────────────────
+  canvas.width=plotW*dpr;
+  canvas.height=H*dpr;
+  canvas.style.width=plotW+"px";
+  canvas.style.height=H+"px";
+  const ctx=canvas.getContext("2d");
+  ctx.scale(dpr,dpr);
+
+  // Horizontal grid lines spanning full plot width
+  for(let i=0;i<=3;i++){
+    const y=pad.t+innerH/3*i;
+    ctx.strokeStyle="#1a2035";ctx.lineWidth=1;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(plotW,y);ctx.stroke();
+  }
+
+  // ₹10K baseline dashed line
+  if(by>pad.t&&by<pad.t+innerH){
+    ctx.strokeStyle="#f5a62330";ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(0,by);ctx.lineTo(plotW,by);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Area fill
+  const g=ctx.createLinearGradient(0,pad.t,0,pad.t+innerH);
   g.addColorStop(0,lc+"44");g.addColorStop(1,lc+"00");
-  ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+h);
+  ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+innerH);
   pts.forEach(p=>ctx.lineTo(p.x,p.y));
-  ctx.lineTo(pts[pts.length-1].x,pad.t+h);ctx.closePath();ctx.fillStyle=g;ctx.fill();
-  // line
+  ctx.lineTo(pts[pts.length-1].x,pad.t+innerH);
+  ctx.closePath();ctx.fillStyle=g;ctx.fill();
+
+  // Line
   ctx.beginPath();ctx.strokeStyle=lc;ctx.lineWidth=2.5;ctx.lineJoin="round";
-  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
-  // end dot
+  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+  ctx.stroke();
+
+  // End dot
   const ep=pts[pts.length-1];
   ctx.beginPath();ctx.arc(ep.x,ep.y,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();
   ctx.beginPath();ctx.arc(ep.x,ep.y,8,0,Math.PI*2);ctx.fillStyle=lc+"30";ctx.fill();
-  // day P&L mini bars (bottom strip)
+
+  // Day P&L mini bars (bottom strip)
   if(dayPnl&&dayPnl.length===values.length){
     const barY=chartH+2;
     const maxAbs=Math.max(...dayPnl.map(Math.abs),1);
-    const bw=Math.max(3,xs*0.55);
+    const bw=Math.max(3,xs*0.5);
     dayPnl.forEach((dp,i)=>{
       const bh=Math.max(2,Math.abs(dp)/maxAbs*(BAR_H-4));
-      const bx=pad.l+i*xs-bw/2;
+      const bx=pts[i].x-bw/2;
       ctx.fillStyle=dp>=0?"#00ff8866":"#ff3d5a66";
-      ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,barY+(BAR_H-4-bh),bw,bh,1):ctx.rect(bx,barY+(BAR_H-4-bh),bw,bh);
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(bx,barY+(BAR_H-4-bh),bw,bh,1);
+      else ctx.rect(bx,barY+(BAR_H-4-bh),bw,bh);
       ctx.fill();
     });
   }
-  // X-axis labels
-  ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
-  const isScrolling=neededW>naturalW;
-  const step=isScrolling?1:Math.max(1,Math.floor(labels.length/4));
+
+  // X-axis date labels — every point since we have room
+  ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";ctx.textAlign="left";
+  const step=Math.max(1,Math.floor(labels.length/Math.max(1,Math.floor(plotW/40))));
   labels.forEach((l,i)=>{
-    if(i%step!==0&&i!==labels.length-1) return;
+    if(i%step!==0&&i!==labels.length-1)return;
     const lbl=l.slice(5);
     const lw=ctx.measureText(lbl).width;
-    const isLast=i===labels.length-1,isFirst=i===0;
-    let x=pad.l+i*xs;
-    if(isFirst) x=pad.l;
-    else if(isLast) x=pad.l+w-lw;
-    else x=pad.l+i*xs-lw/2;
+    const isLast=i===labels.length-1;
+    let x=pts[i].x-lbl.length*3;
+    if(isLast) x=Math.min(x,plotW-lw-2);
+    if(i===0) x=0;
     ctx.fillText(lbl,x,H-4);
   });
-  // Tap tooltip — find nearest data point
+
+  // Scroll to end so latest data is visible first
+  if(scroller) setTimeout(()=>{scroller.scrollLeft=scroller.scrollWidth;},30);
+
+  // Tap tooltip
   const tip=document.getElementById("chartTip");
   function showChartTip(e){
+    if(!tip)return;
     const rect=canvas.getBoundingClientRect();
     const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
-    const scale=W/rect.width;
+    const scale=plotW/rect.width;
     const rx=cx*scale;
     let closest=0,minD=Infinity;
     pts.forEach((p,i)=>{const d=Math.abs(p.x-rx);if(d<minD){minD=d;closest=i;}});
-    if(!tip)return;
     const dp=dayPnl?.[closest]??null;
     const v=values[closest],lbl=labels[closest]?.slice(5)||"";
     tip.textContent=lbl+" · "+fINR(v)+(dp!=null?" · day "+(dp>=0?"+":"")+fINR(dp):"");
