@@ -168,8 +168,12 @@ body{
 .scroll-hint svg{opacity:.5}
 
 /* ── CHART ── */
-.chart-wrap{padding:12px 12px 12px 0}
-.chart-wrap canvas{display:block;width:auto!important}
+.chart-wrap{padding:14px 14px 10px 14px;display:flex;align-items:flex-start;gap:0;overflow:hidden}
+#chartScroller{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
+#chartScroller::-webkit-scrollbar{display:none}
+#chartYAxis{flex-shrink:0;display:block}
+#chart{display:block}
+.chart-wrap canvas{width:auto!important}
 
 /* ── AI CARD ── */
 .ai-body{padding:16px}
@@ -509,13 +513,11 @@ body{
     </div>
     <div class="collapse-body">
       <div class="collapse-inner">
-        <div class="chart-wrap" style="position:relative;display:flex;align-items:flex-start">
-          <!-- Static Y-axis canvas -->
-          <canvas id="chartYAxis" style="flex-shrink:0;display:block"></canvas>
-          <!-- Scrollable plot area -->
-          <div id="chartScroller" style="flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent;position:relative">
+        <div class="chart-wrap" style="position:relative">
+          <canvas id="chartYAxis"></canvas>
+          <div id="chartScroller">
             <canvas id="chart"></canvas>
-            <div id="chartTip" style="display:none;position:absolute;top:6px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.68rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
+            <div id="chartTip" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.66rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
           </div>
           <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
@@ -748,148 +750,204 @@ function drawChart(labels,values,dayPnl){
   if(!canvas||!yCanvas||!values.length)return;
 
   const dpr=devicePixelRatio||1;
-  const H=180,BAR_H=18;
-  const pad={t:10,r:16,b:28};
-  const Y_W=50; // fixed Y-axis panel width
-  const chartH=H-BAR_H-4;
-  const innerH=chartH-pad.t-pad.b;
 
-  // Width for the scrollable plot — enough px per point so data breathes
-  const scroller=document.getElementById("chartScroller");
-  const scrollerW=scroller?scroller.clientWidth:300;
-  const MIN_PX_PER_PT=32;
-  const plotW=Math.max(scrollerW,(values.length>1?(values.length-1)*MIN_PX_PER_PT+pad.r+16:scrollerW));
-  const xs=plotW>0?(plotW-pad.r)/(values.length-1||1):1;
+  // ── Zone layout (all in CSS px) ──────────────────────────────
+  // [pad.t] chart area [pad.b gap] bar strip [bar.h] x-labels [lbl.h]
+  const Y_W   = 52;   // fixed Y-axis panel
+  const pad   = {t:12, r:12, b:6};  // inside plot canvas
+  const BAR_H = 8;    // day P&L bar max height
+  const LBL_H = 18;   // x-axis date labels zone
+  const GAP   = 6;    // gap between chart bottom and bars
+  const TOTAL_H = 160; // total canvas height
 
-  // Value extents
-  const mn=Math.min(...values)*0.998,mx=Math.max(...values)*1.002;
-  const ys=innerH/(mx-mn||1);
-  const pts=values.map((v,i)=>({x:i*xs,y:pad.t+(mx-v)*ys}));
-  const isUp=values[values.length-1]>=values[0];
-  const lc=isUp?"#00ff88":"#ff3d5a";
+  // Zone y-coordinates (top of each zone)
+  const chartTop  = pad.t;
+  const chartBot  = TOTAL_H - pad.b - GAP - BAR_H - LBL_H; // bottom of chart area
+  const barsTop   = chartBot + GAP;
+  const lblTop    = barsTop + BAR_H + 2;
+  const innerH    = chartBot - chartTop;
 
-  // ── Y-AXIS CANVAS (static, left panel) ──────────────────────
-  yCanvas.width=Y_W*dpr;
-  yCanvas.height=H*dpr;
-  yCanvas.style.width=Y_W+"px";
-  yCanvas.style.height=H+"px";
-  const yCtx=yCanvas.getContext("2d");
-  yCtx.scale(dpr,dpr);
+  // ── Plot width: fixed px-per-point, minimum fills scroller ──
+  const scroller = document.getElementById("chartScroller");
+  const scrollerW = scroller ? scroller.clientWidth : 300;
+  const PX_PER_PT = 36;
+  const plotW = Math.max(
+    scrollerW,
+    values.length > 1 ? (values.length - 1) * PX_PER_PT + pad.r + 8 : scrollerW
+  );
+  const xs = values.length > 1 ? (plotW - pad.r) / (values.length - 1) : plotW / 2;
 
-  // Grid value labels
-  yCtx.fillStyle="#3a4a65";
-  yCtx.font="9px JetBrains Mono";
-  yCtx.textAlign="right";
-  for(let i=0;i<=3;i++){
-    const v=mx-(mx-mn)/3*i;
-    const y=pad.t+innerH/3*i;
-    yCtx.fillText("₹"+v.toFixed(0),Y_W-4,y+4);
+  // Value extents — small padding so line doesn't clip top/bottom
+  const rawMin = Math.min(...values), rawMax = Math.max(...values);
+  const spread = rawMax - rawMin || rawMax * 0.01 || 1;
+  const mn = rawMin - spread * 0.04;
+  const mx = rawMax + spread * 0.04;
+  const ys = innerH / (mx - mn);
+
+  // Point coordinates inside plot canvas (no left offset — Y-axis is separate canvas)
+  const pts = values.map((v,i) => ({
+    x: i * xs,
+    y: chartTop + (mx - v) * ys
+  }));
+
+  const isUp = values[values.length-1] >= values[0];
+  const lc   = isUp ? "#00ff88" : "#ff3d5a";
+
+  // ── Y-AXIS CANVAS ────────────────────────────────────────────
+  yCanvas.width  = Y_W * dpr;
+  yCanvas.height = TOTAL_H * dpr;
+  yCanvas.style.width  = Y_W + "px";
+  yCanvas.style.height = TOTAL_H + "px";
+  const yCtx = yCanvas.getContext("2d");
+  yCtx.scale(dpr, dpr);
+  yCtx.clearRect(0, 0, Y_W, TOTAL_H);
+
+  yCtx.font      = "9px JetBrains Mono";
+  yCtx.textAlign = "right";
+
+  // 4 grid values — pinned to exact y positions
+  const gridCount = 4;
+  for (let i = 0; i < gridCount; i++) {
+    const frac = i / (gridCount - 1);
+    const v    = mx - frac * (mx - mn);
+    const y    = chartTop + frac * innerH;
+    yCtx.fillStyle = "#3a4a65";
+    yCtx.fillText("₹" + v.toFixed(0), Y_W - 5, y + 3.5);
   }
-  // ₹10K baseline label on Y axis
-  const by=pad.t+(mx-10000)*ys;
-  if(by>pad.t&&by<pad.t+innerH){
-    yCtx.fillStyle="#f5a62399";
-    yCtx.fillText("₹10K",Y_W-4,by+4);
+
+  // ₹10K baseline label — only if visible and not too close to a grid line
+  const baseY = chartTop + (mx - 10000) * ys;
+  if (baseY > chartTop + 8 && baseY < chartBot - 8) {
+    yCtx.fillStyle = "#f5a62399";
+    yCtx.fillText("₹10K", Y_W - 5, baseY + 3.5);
   }
-  // Thin right border to visually separate axis from plot
-  yCtx.strokeStyle="#1a2035";
-  yCtx.lineWidth=1;
+
+  // Separator line right edge of Y canvas
+  yCtx.strokeStyle = "#1e2840";
+  yCtx.lineWidth   = 1;
   yCtx.beginPath();
-  yCtx.moveTo(Y_W-0.5,pad.t);
-  yCtx.lineTo(Y_W-0.5,chartH+BAR_H);
+  yCtx.moveTo(Y_W - 0.5, chartTop);
+  yCtx.lineTo(Y_W - 0.5, chartBot);
   yCtx.stroke();
 
-  // ── PLOT CANVAS (scrollable) ─────────────────────────────────
-  canvas.width=plotW*dpr;
-  canvas.height=H*dpr;
-  canvas.style.width=plotW+"px";
-  canvas.style.height=H+"px";
-  const ctx=canvas.getContext("2d");
-  ctx.scale(dpr,dpr);
+  // ── PLOT CANVAS ──────────────────────────────────────────────
+  canvas.width  = plotW * dpr;
+  canvas.height = TOTAL_H * dpr;
+  canvas.style.width  = plotW + "px";
+  canvas.style.height = TOTAL_H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, plotW, TOTAL_H);
 
-  // Horizontal grid lines spanning full plot width
-  for(let i=0;i<=3;i++){
-    const y=pad.t+innerH/3*i;
-    ctx.strokeStyle="#1a2035";ctx.lineWidth=1;ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(plotW,y);ctx.stroke();
+  // Horizontal grid lines — matched exactly to Y-axis labels
+  ctx.setLineDash([]);
+  for (let i = 0; i < gridCount; i++) {
+    const y = chartTop + (i / (gridCount - 1)) * innerH;
+    ctx.strokeStyle = "#1a2035";
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(plotW, y);
+    ctx.stroke();
   }
 
   // ₹10K baseline dashed line
-  if(by>pad.t&&by<pad.t+innerH){
-    ctx.strokeStyle="#f5a62330";ctx.lineWidth=1;ctx.setLineDash([4,4]);
-    ctx.beginPath();ctx.moveTo(0,by);ctx.lineTo(plotW,by);ctx.stroke();
+  if (baseY > chartTop + 4 && baseY < chartBot - 4) {
+    ctx.strokeStyle = "#f5a62328";
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    ctx.lineTo(plotW, baseY);
+    ctx.stroke();
     ctx.setLineDash([]);
   }
 
   // Area fill
-  const g=ctx.createLinearGradient(0,pad.t,0,pad.t+innerH);
-  g.addColorStop(0,lc+"44");g.addColorStop(1,lc+"00");
-  ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+innerH);
-  pts.forEach(p=>ctx.lineTo(p.x,p.y));
-  ctx.lineTo(pts[pts.length-1].x,pad.t+innerH);
-  ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  const grad = ctx.createLinearGradient(0, chartTop, 0, chartBot);
+  grad.addColorStop(0, lc + "44");
+  grad.addColorStop(1, lc + "00");
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, chartBot);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, chartBot);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
 
   // Line
-  ctx.beginPath();ctx.strokeStyle=lc;ctx.lineWidth=2.5;ctx.lineJoin="round";
-  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+  ctx.beginPath();
+  ctx.strokeStyle = lc;
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = "round";
+  ctx.lineCap     = "round";
+  pts.forEach((p,i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
   ctx.stroke();
 
   // End dot
-  const ep=pts[pts.length-1];
-  ctx.beginPath();ctx.arc(ep.x,ep.y,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();
-  ctx.beginPath();ctx.arc(ep.x,ep.y,8,0,Math.PI*2);ctx.fillStyle=lc+"30";ctx.fill();
+  const ep = pts[pts.length-1];
+  ctx.beginPath(); ctx.arc(ep.x, ep.y, 4, 0, Math.PI*2); ctx.fillStyle = lc; ctx.fill();
+  ctx.beginPath(); ctx.arc(ep.x, ep.y, 8, 0, Math.PI*2); ctx.fillStyle = lc+"28"; ctx.fill();
 
-  // Day P&L mini bars (bottom strip)
-  if(dayPnl&&dayPnl.length===values.length){
-    const barY=chartH+2;
-    const maxAbs=Math.max(...dayPnl.map(Math.abs),1);
-    const bw=Math.max(3,xs*0.5);
-    dayPnl.forEach((dp,i)=>{
-      const bh=Math.max(2,Math.abs(dp)/maxAbs*(BAR_H-4));
-      const bx=pts[i].x-bw/2;
-      ctx.fillStyle=dp>=0?"#00ff8866":"#ff3d5a66";
+  // Day P&L mini bars — fixed height zone, proportional within it
+  if (dayPnl && dayPnl.length === values.length) {
+    const maxAbs = Math.max(...dayPnl.map(Math.abs), 1);
+    const bw = Math.max(4, Math.min(xs * 0.45, 14));
+    dayPnl.forEach((dp, i) => {
+      const bh  = Math.max(2, (Math.abs(dp) / maxAbs) * BAR_H);
+      const bx  = pts[i].x - bw / 2;
+      const by2 = barsTop + BAR_H - bh; // bars grow upward from bottom of bar zone
+      ctx.fillStyle = dp >= 0 ? "#00ff8855" : "#ff3d5a55";
       ctx.beginPath();
-      if(ctx.roundRect) ctx.roundRect(bx,barY+(BAR_H-4-bh),bw,bh,1);
-      else ctx.rect(bx,barY+(BAR_H-4-bh),bw,bh);
+      if (ctx.roundRect) ctx.roundRect(bx, by2, bw, bh, 1);
+      else ctx.rect(bx, by2, bw, bh);
       ctx.fill();
     });
   }
 
-  // X-axis date labels — every point since we have room
-  ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";ctx.textAlign="left";
-  const step=Math.max(1,Math.floor(labels.length/Math.max(1,Math.floor(plotW/40))));
-  labels.forEach((l,i)=>{
-    if(i%step!==0&&i!==labels.length-1)return;
-    const lbl=l.slice(5);
-    const lw=ctx.measureText(lbl).width;
-    const isLast=i===labels.length-1;
-    let x=pts[i].x-lbl.length*3;
-    if(isLast) x=Math.min(x,plotW-lw-2);
-    if(i===0) x=0;
-    ctx.fillText(lbl,x,H-4);
+  // X-axis date labels — sit cleanly in LBL_H zone below bars
+  ctx.fillStyle  = "#3a4a65";
+  ctx.font       = "9px JetBrains Mono";
+  ctx.textAlign  = "center";
+  const lblY     = lblTop + LBL_H * 0.65; // vertically centred in label zone
+  // Show every Nth label so they don't collide (each label ~28px wide)
+  const maxLabels = Math.floor(plotW / 30);
+  const step = Math.max(1, Math.ceil((labels.length - 1) / (maxLabels - 1)));
+  labels.forEach((l, i) => {
+    const isLast = i === labels.length - 1;
+    if (i % step !== 0 && !isLast) return;
+    const lbl = l.slice(5); // "MM-DD"
+    let x = pts[i].x;
+    // Clamp so label stays within canvas
+    const hw = 14;
+    x = Math.max(hw, Math.min(plotW - hw, x));
+    ctx.fillText(lbl, x, lblY);
   });
 
-  // Scroll to end so latest data is visible first
-  if(scroller) setTimeout(()=>{scroller.scrollLeft=scroller.scrollWidth;},30);
+  // Scroll to latest (rightmost) on first draw
+  if (scroller) setTimeout(() => { scroller.scrollLeft = scroller.scrollWidth; }, 30);
 
-  // Tap tooltip
-  const tip=document.getElementById("chartTip");
-  function showChartTip(e){
-    if(!tip)return;
-    const rect=canvas.getBoundingClientRect();
-    const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
-    const scale=plotW/rect.width;
-    const rx=cx*scale;
-    let closest=0,minD=Infinity;
-    pts.forEach((p,i)=>{const d=Math.abs(p.x-rx);if(d<minD){minD=d;closest=i;}});
-    const dp=dayPnl?.[closest]??null;
-    const v=values[closest],lbl=labels[closest]?.slice(5)||"";
-    tip.textContent=lbl+" · "+fINR(v)+(dp!=null?" · day "+(dp>=0?"+":"")+fINR(dp):"");
-    tip.style.display="block";
-    setTimeout(()=>{if(tip)tip.style.display="none";},2200);
+  // Tap / click tooltip
+  const tip = document.getElementById("chartTip");
+  canvas.onclick = canvas.ontouchstart = null; // clear previous handlers
+  function showTip(e) {
+    if (!tip) return;
+    if (e.cancelable) e.preventDefault();
+    const rect  = canvas.getBoundingClientRect();
+    const cx    = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const scale = plotW / rect.width;
+    const rx    = cx * scale;
+    let closest = 0, minD = Infinity;
+    pts.forEach((p,i) => { const d=Math.abs(p.x-rx); if(d<minD){minD=d;closest=i;} });
+    const dp  = dayPnl?.[closest] ?? null;
+    const v   = values[closest];
+    const lbl = labels[closest]?.slice(5) || "";
+    tip.textContent = lbl + "  " + fINR(v) + (dp != null ? "  ·  day " + (dp >= 0 ? "+" : "") + fINR(dp) : "");
+    tip.style.display = "block";
+    setTimeout(() => { if(tip) tip.style.display = "none"; }, 2500);
   }
-  canvas.onclick=showChartTip;
-  canvas.ontouchstart=e=>{e.preventDefault();showChartTip(e);};
+  canvas.onclick      = showTip;
+  canvas.ontouchstart = showTip;
 }
 
 // ── RENDER ────────────────────────────────────────────────────
