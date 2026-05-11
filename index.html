@@ -396,46 +396,45 @@ body{
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch">
 
     <!-- Experiment card -->
-    <div class="status-card" id="statusCard" style="margin:0">
+    <div class="status-card" id="statusCard" style="margin:0;display:flex;flex-direction:column;justify-content:space-between;gap:0">
       <button class="kpi-help" onclick="showTip('status')" id="help-status">?</button>
-      <div class="status-label">Experiment</div>
-      <div class="status-icon" id="statusIcon">—</div>
-      <div class="status-headline" id="statusHeadline">—</div>
-      <div class="status-sub" id="statusSub">—</div>
-      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
-        <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)" id="statusStarted">Started · —</div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;gap:6px">
-          <div style="font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);line-height:1.5">
-            <span id="statBestLabel" style="display:block;margin-bottom:2px">Best Day</span>
-            <span id="statBest" style="font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--neon);letter-spacing:0;text-transform:none;display:block">—</span>
-            <span id="statBestDate" style="font-size:.56rem;color:var(--muted);letter-spacing:0;text-transform:none;font-style:italic"></span>
+      <div>
+        <div class="status-label">Experiment</div>
+        <!-- Status indicator row: coloured dot + headline -->
+        <div style="display:flex;align-items:center;gap:7px;margin-top:6px;margin-bottom:4px">
+          <span id="statusDot" style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--sub);display:inline-block"></span>
+          <div class="status-headline" id="statusHeadline" style="font-size:.82rem;font-weight:700;line-height:1.2">—</div>
+        </div>
+        <div class="status-sub" id="statusSub" style="font-size:.68rem;color:var(--sub);line-height:1.5;padding-left:14px">—</div>
+      </div>
+      <!-- Footer: started + best/worst -->
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px">
+        <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px" id="statusStarted">Started · —</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <!-- Best -->
+          <div style="background:var(--bg);border-radius:8px;padding:6px 8px;border:1px solid var(--border)">
+            <div style="font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:3px" id="statBestLabel">Best Day</div>
+            <div id="statBest" style="font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--neon);letter-spacing:0">—</div>
+            <div id="statBestDate" style="font-size:.54rem;color:var(--muted);margin-top:1px;font-style:italic"></div>
           </div>
-          <div style="text-align:right;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);line-height:1.5">
-            <span id="statWorstLabel" style="display:block;margin-bottom:2px">Worst Day</span>
-            <span id="statWorst" style="font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--bear);letter-spacing:0;text-transform:none;display:block">—</span>
-            <span id="statWorstDate" style="font-size:.56rem;color:var(--muted);letter-spacing:0;text-transform:none;font-style:italic"></span>
+          <!-- Worst -->
+          <div style="background:var(--bg);border-radius:8px;padding:6px 8px;border:1px solid var(--border)">
+            <div style="font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:3px" id="statWorstLabel">Worst Day</div>
+            <div id="statWorst" style="font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--bear);letter-spacing:0">—</div>
+            <div id="statWorstDate" style="font-size:.54rem;color:var(--muted);margin-top:1px;font-style:italic"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Stats card — donut chart -->
-    <div class="kpi-card" style="--kpi-accent:var(--sub);padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
-      <canvas id="donutChart" width="120" height="120" style="display:block;width:120px;height:120px"></canvas>
-      <div style="display:flex;justify-content:space-between;width:100%;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <div style="text-align:center">
-          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Days</div>
-          <div id="statDays" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--gold)">—</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Profit</div>
-          <div id="statProfit" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--neon)">—</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Loss</div>
-          <div id="statLoss" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--bear)">—</div>
-        </div>
-      </div>
+    <!-- Stats card — donut chart, self-labelled -->
+    <div class="kpi-card" style="--kpi-accent:var(--sub);padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative">
+      <button class="kpi-help" onclick="showTip('daystats')" id="help-daystats" style="position:absolute;top:8px;right:8px">?</button>
+      <canvas id="donutChart" style="display:block"></canvas>
+      <!-- Hidden value holders for JS to update (not shown) -->
+      <span id="statDays"   style="display:none">—</span>
+      <span id="statProfit" style="display:none">—</span>
+      <span id="statLoss"   style="display:none">—</span>
     </div>
 
   </div>
@@ -661,6 +660,7 @@ const TIPS={
       <div id="tipTotal" style="font-family:var(--mono);font-size:.88rem;font-weight:700">₹—</div>
     </div>`},
   status:{title:"Experiment Status",body:"A plain-English read on whether Claude is winning or losing vs the ₹10,000 it started with."},
+  daystats:{title:"Win / Loss Breakdown",body:"The donut shows every trading day Claude has run. Green slices are days the portfolio grew — red slices are days it shrank. The number in the centre is total days traded. The bigger the green, the better Claude is doing over time."},
   sessions:{title:"Why these times?",body:"9:30 AM when the market opens over breakfast — new entries allowed. 2:30 PM when institutional order books re-engage for the closing session — portfolio review only, no new buys. Claude trades at exactly these times every weekday."}
 };
 let idleTimer=null;
@@ -671,52 +671,49 @@ function startNudge(){
   idleTimer=setTimeout(()=>{
     if(nudgeFired) return;
     nudgeFired=true;
-    // Market Signal — card border flashes, then ? icon glows. Sequential, top to bottom.
-    // Explicitly build the card sequence: 5 kpi-cards + statusCard as 6th
-    const kpiCards=Array.from(document.querySelectorAll(".kpi-card"));
-    const statusCard=document.getElementById("statusCard");
-    const cards=[...kpiCards,...(statusCard?[statusCard]:[])];
-    const step=220; // ms between each card signal
-    cards.forEach((card,i)=>{
-      const btn=card.querySelector(".kpi-help");
-      setTimeout(()=>{
-        // 1. Card border flashes sharp amber — like a price alert
-        card.classList.add("signalling");
-        setTimeout(()=>card.classList.remove("signalling"),650);
-        // 2. Icon glows softly 80ms after border flash
-        if(btn){
-          setTimeout(()=>{
-            btn.classList.add("nudge");
-            setTimeout(()=>btn.classList.remove("nudge"),900);
-          },80);
-        }
-      },i*step);
-    });
-    // Session help fires after all 6 cards
-    const sessHelp=document.getElementById("help-sessions");
-    if(sessHelp){
-      const sessDelay=cards.length*step+120;
-      setTimeout(()=>{
-        sessHelp.classList.add("nudge");
-        setTimeout(()=>sessHelp.classList.remove("nudge"),900);
-      },sessDelay);
-    }
-    // Portfolio card + help fire last — entire hero card glows to close the sequence
-    const portHelp=document.getElementById("help-portfolio");
-    const heroCard=document.getElementById("heroCard");
-    if(portHelp&&heroCard){
-      const portDelay=cards.length*step+120+step;
-      setTimeout(()=>{
-        heroCard.classList.add("signalling");
-        setTimeout(()=>heroCard.classList.remove("signalling"),1800);
-        setTimeout(()=>{
-          portHelp.classList.add("nudge");
-          setTimeout(()=>portHelp.classList.remove("nudge"),900);
-        },80);
-      },portDelay);
-    }
 
-  },5000);
+    // Explicit ordered sequence — top to bottom as seen on screen:
+    // 1. Total Portfolio Value (hero card)
+    // 2. Sessions (inside hero)
+    // 3. Total P&L
+    // 4. Invested
+    // 5. Cash
+    // 6. Experiment
+    // 7. Donut (Win/Loss Breakdown)
+    const sequence = [
+      { card: document.getElementById("heroCard"),   btn: document.getElementById("help-portfolio"), hero: true },
+      { card: null,                                   btn: document.getElementById("help-sessions")             },
+      { card: document.querySelector(".kpi-card:has(#kpiTotalPnl)") || document.getElementById("help-totalpnl")?.closest(".kpi-card"), btn: document.getElementById("help-totalpnl") },
+      { card: document.querySelector(".kpi-card:has(#kpiInvested)") || document.getElementById("help-invested")?.closest(".kpi-card"), btn: document.getElementById("help-invested")  },
+      { card: document.querySelector(".kpi-card:has(#kpiCash)")     || document.getElementById("help-cash")?.closest(".kpi-card"),     btn: document.getElementById("help-cash")      },
+      { card: document.getElementById("statusCard"), btn: document.getElementById("help-status")                },
+      { card: document.getElementById("help-daystats")?.closest(".kpi-card"), btn: document.getElementById("help-daystats") },
+    ];
+
+    const step = 240; // ms between each item
+
+    sequence.forEach((item, i) => {
+      setTimeout(() => {
+        // Flash card border
+        if(item.card) {
+          item.card.classList.add("signalling");
+          if(item.hero) {
+            setTimeout(() => item.card.classList.remove("signalling"), 1800);
+          } else {
+            setTimeout(() => item.card.classList.remove("signalling"), 650);
+          }
+        }
+        // Glow the ? icon 80ms after border flash
+        if(item.btn) {
+          setTimeout(() => {
+            item.btn.classList.add("nudge");
+            setTimeout(() => item.btn.classList.remove("nudge"), 900);
+          }, 80);
+        }
+      }, i * step);
+    });
+
+  }, 5000);
 }
 ["touchstart","click","scroll"].forEach(e=>document.addEventListener(e,startNudge,{passive:true}));
 startNudge();
@@ -1013,74 +1010,112 @@ function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
 function drawDonut(profit, loss, neutral){
   const canvas = document.getElementById("donutChart");
   if(!canvas) return;
-  const dpr = devicePixelRatio || 1;
-  const SIZE = 120;
-  canvas.width  = SIZE * dpr;
-  canvas.height = SIZE * dpr;
+  const dpr  = devicePixelRatio || 1;
+
+  // Size to fill the kpi-card minus its padding (card is ~half of ~300px wide column)
+  const card = canvas.parentElement;
+  const RAW  = card ? Math.min(card.clientWidth - 24, card.clientHeight || 140, 140) : 130;
+  const SIZE = Math.max(RAW, 110); // minimum 110px
+
+  canvas.width        = SIZE * dpr;
+  canvas.height       = SIZE * dpr;
   canvas.style.width  = SIZE + "px";
   canvas.style.height = SIZE + "px";
+
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, SIZE, SIZE);
 
-  const cx = SIZE / 2, cy = SIZE / 2;
-  const r  = 46,  rIn = 30; // outer and inner radius → ring width = 16px
-  const total = profit + loss + neutral || 1;
-  const gap   = 0.04; // radians gap between segments
+  const cx  = SIZE / 2, cy = SIZE / 2;
+  const r   = SIZE * 0.40;  // outer radius — ~40% of canvas
+  const rIn = SIZE * 0.24;  // inner radius — ring width ≈ 16% of canvas
+  const rMid = (r + rIn) / 2; // midpoint of ring — where labels sit
 
-  // Segments: profit (green), loss (red), neutral (muted) if any
+  const total = profit + loss + neutral || 0;
+  const gap   = total > 1 ? 0.06 : 0; // gap only when multiple segments
+
   const segments = [
-    { val: profit,  color: "#00ff88", glow: "#00ff8840" },
-    { val: loss,    color: "#ff3d5a", glow: "#ff3d5a40" },
-    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", glow: null }] : []),
+    { val: profit,  color: "#00ff88", glow: "#00ff8830", label: "profit" },
+    { val: loss,    color: "#ff3d5a", glow: "#ff3d5a30", label: "loss"   },
+    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", glow: null, label: "flat" }] : []),
   ].filter(s => s.val > 0);
 
-  // Track angles
-  let startAngle = -Math.PI / 2; // start at 12 o'clock
-
-  if(segments.length === 0){
-    // Empty state — full grey ring
+  // ── Empty state ───────────────────────────────────────────────
+  if(segments.length === 0 || total === 0){
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.arc(cx, cy, rIn, Math.PI * 2, 0, true);
     ctx.fillStyle = "#1a2035";
     ctx.fill();
-  } else {
-    segments.forEach(seg => {
-      const sweep = (seg.val / total) * (Math.PI * 2) - gap;
-      const endAngle = startAngle + sweep;
-
-      // Glow layer (slightly wider, transparent)
-      if(seg.glow){
-        ctx.beginPath();
-        ctx.arc(cx, cy, r + 2, startAngle, endAngle);
-        ctx.arc(cx, cy, rIn - 2, endAngle, startAngle, true);
-        ctx.closePath();
-        ctx.fillStyle = seg.glow;
-        ctx.fill();
-      }
-
-      // Main segment
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, startAngle, endAngle);
-      ctx.arc(cx, cy, rIn, endAngle, startAngle, true);
-      ctx.closePath();
-      ctx.fillStyle = seg.color;
-      ctx.fill();
-
-      startAngle = endAngle + gap;
-    });
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#5a6a85";
+    ctx.font = `${SIZE * 0.1}px 'Syne', sans-serif`;
+    ctx.fillText("no data yet", cx, cy);
+    return;
   }
 
-  // Centre label — total days
+  // ── Draw segments + labels ────────────────────────────────────
+  let startAngle = -Math.PI / 2; // 12 o'clock
+
+  segments.forEach(seg => {
+    const frac  = seg.val / total;
+    const sweep = frac * Math.PI * 2 - gap;
+    const endAngle = startAngle + sweep;
+    const midAngle = startAngle + sweep / 2;
+
+    // Glow halo
+    if(seg.glow){
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 3, startAngle, endAngle);
+      ctx.arc(cx, cy, rIn - 3, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = seg.glow;
+      ctx.fill();
+    }
+
+    // Main arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.arc(cx, cy, rIn, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+
+    // ── Inline label on the segment ───────────────────────────
+    // Only draw if segment is large enough to hold text (> 18% of circle)
+    if(frac >= 0.18){
+      const lx = cx + Math.cos(midAngle) * rMid;
+      const ly = cy + Math.sin(midAngle) * rMid;
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+
+      // Count in bold
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.font      = `bold ${SIZE * 0.155}px 'Bebas Neue', cursive`;
+      ctx.fillText(seg.val, lx, ly - SIZE * 0.045);
+
+      // Word label below count
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font      = `${SIZE * 0.07}px 'Syne', sans-serif`;
+      ctx.fillText(seg.label, lx, ly + SIZE * 0.065);
+    }
+
+    startAngle = endAngle + gap;
+  });
+
+  // ── Centre — total days ───────────────────────────────────────
   ctx.textAlign    = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle    = "#e8eef8";
-  ctx.font         = `bold ${SIZE * 0.18}px 'Bebas Neue', cursive`;
-  ctx.fillText(total === 1 && profit + loss + neutral === 0 ? "—" : profit + loss + neutral, cx, cy - 5);
-  ctx.font      = `${SIZE * 0.085}px 'Syne', sans-serif`;
+
+  // Total number
+  ctx.fillStyle = "#e8eef8";
+  ctx.font      = `bold ${SIZE * 0.2}px 'Bebas Neue', cursive`;
+  ctx.fillText(total, cx, cy - SIZE * 0.045);
+
+  // "days run" label
   ctx.fillStyle = "#5a6a85";
-  ctx.fillText("days", cx, cy + 10);
+  ctx.font      = `${SIZE * 0.075}px 'Syne', sans-serif`;
+  ctx.fillText("days run", cx, cy + SIZE * 0.075);
 }
 
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
@@ -1139,14 +1174,17 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt)
   }
   const p=totalPnl||0,d2=exp?.totalDays||0;
   const sc=document.getElementById("statusCard");
-  const icon=document.getElementById("statusIcon"),hl=document.getElementById("statusHeadline"),sub=document.getElementById("statusSub");
+  const dot=document.getElementById("statusDot");
+  const hl=document.getElementById("statusHeadline"),sub=document.getElementById("statusSub");
   if(p>=0){
     sc.style.setProperty("--status-accent","var(--neon)");
-    icon.textContent="📈";hl.textContent="Ahead of the line";hl.style.color="var(--neon)";
+    if(dot){dot.style.background="var(--neon)";dot.style.boxShadow="0 0 6px var(--neon)";}
+    hl.textContent="Ahead of the line";hl.style.color="var(--neon)";
     sub.textContent="Claude is "+fINR(Math.abs(p))+" up after "+d2+" day"+(d2!==1?"s":"");
   } else {
     sc.style.setProperty("--status-accent","var(--bear)");
-    icon.textContent="📉";hl.textContent="Behind the line";hl.style.color="var(--bear)";
+    if(dot){dot.style.background="var(--bear)";dot.style.boxShadow="0 0 6px var(--bear)";}
+    hl.textContent="Behind the line";hl.style.color="var(--bear)";
     sub.textContent="Claude is "+fINR(Math.abs(p))+" down after "+d2+" day"+(d2!==1?"s":"");
   }
 }
