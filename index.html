@@ -45,6 +45,10 @@
   --body:'Syne',sans-serif;
   --mono:'JetBrains Mono',monospace;
   --r:14px;
+  --hero-accent:var(--border2);
+  --hero-glow:transparent;
+  --status-accent:var(--border2);
+  --kpi-accent:var(--border2);
 }
 html{font-size:15px;-webkit-tap-highlight-color:transparent}
 body{
@@ -400,9 +404,17 @@ body{
       <div class="status-sub" id="statusSub">—</div>
       <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
         <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)" id="statusStarted">Started · —</div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)"><span id="statBestLabel">Best</span><br><span id="statBest" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--neon);letter-spacing:0;text-transform:none">—</span></div>
-          <div style="text-align:right;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)"><span id="statWorstLabel">Worst</span><br><span id="statWorst" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--bear);letter-spacing:0;text-transform:none">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;gap:6px">
+          <div style="font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);line-height:1.5">
+            <span id="statBestLabel" style="display:block;margin-bottom:2px">Best Day</span>
+            <span id="statBest" style="font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--neon);letter-spacing:0;text-transform:none;display:block">—</span>
+            <span id="statBestDate" style="font-size:.56rem;color:var(--muted);letter-spacing:0;text-transform:none;font-style:italic"></span>
+          </div>
+          <div style="text-align:right;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);line-height:1.5">
+            <span id="statWorstLabel" style="display:block;margin-bottom:2px">Worst Day</span>
+            <span id="statWorst" style="font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--bear);letter-spacing:0;text-transform:none;display:block">—</span>
+            <span id="statWorstDate" style="font-size:.56rem;color:var(--muted);letter-spacing:0;text-transform:none;font-style:italic"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -519,7 +531,7 @@ body{
             <canvas id="chart"></canvas>
             <div id="chartTip" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px;font-size:.66rem;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10"></div>
           </div>
-          <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
+          <div id="chartEmpty" style="position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px;display:none">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
           </div>
@@ -736,8 +748,12 @@ function closeTooltip(){document.getElementById("tooltipOverlay").classList.remo
 function toggleSection(id){
   const s=document.getElementById(id);
   s.classList.toggle("open");
-  if(id==="sec-chart"&&s.classList.contains("open")&&window._chartData)
-    setTimeout(()=>drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl),50);
+  if(id==="sec-chart"&&s.classList.contains("open")&&window._chartData){
+    // Defer two frames — first frame triggers CSS transition, second frame has real dimensions
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl);
+    }));
+  }
   // Refresh fades when sections open — content now visible
   if(id==="sec-positions") setTimeout(()=>updateHint("posCard","posHint"),450);
   if(id==="sec-trades")    setTimeout(()=>updateHint("tradesCard","tradesHint"),450);
@@ -994,37 +1010,42 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt)
   document.getElementById("statDays").textContent=exp?.totalDays||0;
   document.getElementById("statProfit").textContent=exp?.profitDays||0;
   document.getElementById("statLoss").textContent=exp?.lossDays||0;
-  // Best / Worst day — label adapts to context
-  const bestPnl  = exp?.bestDay?.pnl  ?? null;
-  const worstPnl = exp?.worstDay?.pnl ?? null;
-  const bestEl   = document.getElementById("statBest");
-  const worstEl  = document.getElementById("statWorst");
-  const bestLbl  = document.getElementById("statBestLabel");
-  const worstLbl = document.getElementById("statWorstLabel");
+  // Best / Worst day — label + date + context
+  const bestPnl   = exp?.bestDay?.pnl  ?? null;
+  const worstPnl  = exp?.worstDay?.pnl ?? null;
+  const bestDate  = exp?.bestDay?.date  || null;
+  const worstDate = exp?.worstDay?.date || null;
+  const fmtDate   = d => d ? new Date(d+"T00:00:00Z").toLocaleDateString("en-IN",{day:"numeric",month:"short"}) : "";
+  const bestEl    = document.getElementById("statBest");
+  const worstEl   = document.getElementById("statWorst");
+  const bestLbl   = document.getElementById("statBestLabel");
+  const worstLbl  = document.getElementById("statWorstLabel");
+  const bestDt    = document.getElementById("statBestDate");
+  const worstDt   = document.getElementById("statWorstDate");
   if(bestEl) {
     if(bestPnl === null) {
-      bestEl.textContent = "—";
-      bestEl.style.color = "var(--sub)";
-    } else if(bestPnl >= 0) {
-      // Genuinely a profit day — green, label "Best"
-      bestEl.textContent = "+" + fINR(bestPnl);
-      bestEl.style.color = "var(--neon)";
+      bestEl.textContent = "—"; bestEl.style.color = "var(--sub)";
       if(bestLbl) bestLbl.textContent = "Best Day";
+      if(bestDt)  bestDt.textContent  = "";
+    } else if(bestPnl >= 0) {
+      bestEl.textContent = "+" + fINR(bestPnl); bestEl.style.color = "var(--neon)";
+      if(bestLbl) bestLbl.textContent = "Best Day";
+      if(bestDt)  bestDt.textContent  = fmtDate(bestDate);
     } else {
-      // All days were losses — show least bad, label clearly
-      bestEl.textContent = fINR(bestPnl);
-      bestEl.style.color = "var(--gold)";
-      if(bestLbl) bestLbl.textContent = "Least Loss";
+      bestEl.textContent = fINR(bestPnl); bestEl.style.color = "var(--gold)";
+      if(bestLbl) bestLbl.textContent = "Smallest Loss";
+      if(bestDt)  bestDt.textContent  = fmtDate(bestDate) + " · all days in red";
     }
   }
   if(worstEl) {
     if(worstPnl === null) {
-      worstEl.textContent = "—";
-      worstEl.style.color = "var(--sub)";
-    } else {
-      worstEl.textContent = fINR(worstPnl);
-      worstEl.style.color = "var(--bear)";
+      worstEl.textContent = "—"; worstEl.style.color = "var(--sub)";
       if(worstLbl) worstLbl.textContent = "Worst Day";
+      if(worstDt)  worstDt.textContent  = "";
+    } else {
+      worstEl.textContent = fINR(worstPnl); worstEl.style.color = "var(--bear)";
+      if(worstLbl) worstLbl.textContent = "Worst Day";
+      if(worstDt)  worstDt.textContent  = fmtDate(worstDate);
     }
   }
   // Dynamic started date from createdAt
@@ -1081,9 +1102,10 @@ const KNOWN_TICKERS = new Set([
 ]);
 function maskInsightText(text){
   if(!text) return text;
-  // Replace any known ticker (with or without .NS) with [STOCK]
-  return text.replace(/\b([A-Z]{3,})(?:\.NS)?\b/g, (match, ticker) => {
-    if(KNOWN_TICKERS.has(ticker)) return "[STOCK]";
+  // Match 2+ char uppercase words (with optional .NS suffix) — check against KNOWN_TICKERS
+  return text.replace(/\b([A-Z]{2,})(?:\.NS)?\b/g, (match, ticker) => {
+    if(KNOWN_TICKERS.has(ticker))
+      return '<span style="display:inline-block;font-size:.72em;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,0.07);color:var(--sub);letter-spacing:.04em;font-style:normal">a stock</span>';
     return match;
   });
 }
@@ -1098,7 +1120,7 @@ function renderAI(ins){
   const analysis   = maskInsightText(ins.analysis||"—");
   const risk       = maskInsightText(ins.riskAssessment||"");
   const expNote    = maskInsightText(ins.experimentNote||"");
-  document.getElementById("claudeMeta").textContent=outlook.slice(0,45)||"Latest analysis";
+  document.getElementById("claudeMeta").textContent=(ins.marketOutlook||"Latest analysis").slice(0,45);
   const assessBlock=assessment
     ?`<div style="font-size:.74rem;color:var(--sub);font-style:italic;line-height:1.65;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">${assessment}</div>`
     :"";
@@ -1316,7 +1338,11 @@ async function loadAll(){
       if(chartEmpty){chartEmpty.style.display=hasEnoughData?"none":"flex";}
       const chartEl=document.getElementById("chart");
       if(chartEl){chartEl.style.display=hasEnoughData?"block":"none";}
-      if(hasEnoughData&&sec.classList.contains("open"))drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl);
+      if(hasEnoughData&&sec.classList.contains("open")){
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          drawChart(window._chartData.labels,window._chartData.values,window._chartData.dayPnl);
+        }));
+      }
     }
   }catch(e){
     const b=document.getElementById("setupBanner");b.style.display="block";
