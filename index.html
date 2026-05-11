@@ -1016,10 +1016,10 @@ function drawDonut(profit, loss, neutral){
   if(!canvas) return;
   const dpr  = devicePixelRatio || 1;
 
-  // Size to fill the kpi-card minus its padding (card is ~half of ~300px wide column)
+  // Size to fill the right cell — leave room for external callout labels
   const card = canvas.parentElement;
-  const RAW  = card ? Math.min(card.clientWidth - 24, card.clientHeight || 140, 140) : 130;
-  const SIZE = Math.max(RAW, 110); // minimum 110px
+  const avail = card ? Math.min(card.clientWidth - 16, 148) : 140;
+  const SIZE  = Math.max(avail, 120);
 
   canvas.width        = SIZE * dpr;
   canvas.height       = SIZE * dpr;
@@ -1031,9 +1031,8 @@ function drawDonut(profit, loss, neutral){
   ctx.clearRect(0, 0, SIZE, SIZE);
 
   const cx  = SIZE / 2, cy = SIZE / 2;
-  const r   = SIZE * 0.40;  // outer radius — ~40% of canvas
-  const rIn = SIZE * 0.24;  // inner radius — ring width ≈ 16% of canvas
-  const rMid = (r + rIn) / 2; // midpoint of ring — where labels sit
+  const r   = SIZE * 0.36;  // outer radius
+  const rIn = SIZE * 0.22;  // inner radius — ring width ≈ 14% of canvas
 
   const total = profit + loss + neutral || 0;
   const gap   = total > 1 ? 0.06 : 0; // gap only when multiple segments
@@ -1058,20 +1057,19 @@ function drawDonut(profit, loss, neutral){
     return;
   }
 
-  // ── Draw segments + labels ────────────────────────────────────
+  // ── Draw segments ────────────────────────────────────────────
   let startAngle = -Math.PI / 2; // 12 o'clock
 
   segments.forEach(seg => {
-    const frac  = seg.val / total;
-    const sweep = frac * Math.PI * 2 - gap;
+    const frac     = seg.val / total;
+    const sweep    = frac * Math.PI * 2 - gap;
     const endAngle = startAngle + sweep;
-    const midAngle = startAngle + sweep / 2;
 
-    // Glow halo
+    // Subtle glow halo behind segment
     if(seg.glow){
       ctx.beginPath();
-      ctx.arc(cx, cy, r + 3, startAngle, endAngle);
-      ctx.arc(cx, cy, rIn - 3, endAngle, startAngle, true);
+      ctx.arc(cx, cy, r + 2.5, startAngle, endAngle);
+      ctx.arc(cx, cy, rIn - 2.5, endAngle, startAngle, true);
       ctx.closePath();
       ctx.fillStyle = seg.glow;
       ctx.fill();
@@ -1085,41 +1083,73 @@ function drawDonut(profit, loss, neutral){
     ctx.fillStyle = seg.color;
     ctx.fill();
 
-    // ── Inline label on the segment ───────────────────────────
-    // Only draw if segment is large enough to hold text (> 18% of circle)
-    if(frac >= 0.18){
-      const lx = cx + Math.cos(midAngle) * rMid;
-      const ly = cy + Math.sin(midAngle) * rMid;
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
-
-      // Count in bold
-      ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.font      = `bold ${SIZE * 0.155}px 'Bebas Neue', cursive`;
-      ctx.fillText(seg.val, lx, ly - SIZE * 0.045);
-
-      // Word label below count
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font      = `${SIZE * 0.07}px 'Syne', sans-serif`;
-      ctx.fillText(seg.label, lx, ly + SIZE * 0.065);
-    }
-
+    seg._startAngle = startAngle;
+    seg._endAngle   = endAngle;
+    seg._frac       = frac;
     startAngle = endAngle + gap;
+  });
+
+  // ── External callout labels — premium tick style ──────────────
+  // Only draw callouts when segment is large enough to place one cleanly (> 12%)
+  const LABEL_R  = r + SIZE * 0.10; // anchor point outside ring
+  const TICK_LEN = SIZE * 0.07;     // horizontal tick length
+
+  ctx.font      = `500 ${SIZE * 0.075}px 'Syne', sans-serif`;
+  ctx.lineWidth = 0.8;
+
+  segments.forEach(seg => {
+    if(seg._frac < 0.12) return; // too small — skip to avoid overlap
+
+    const midAngle = seg._startAngle + (seg._endAngle - seg._startAngle) / 2;
+
+    // Dot on outer ring edge
+    const dotX = cx + Math.cos(midAngle) * r;
+    const dotY = cy + Math.sin(midAngle) * r;
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 2, 0, Math.PI * 2);
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+
+    // Radial line from dot outward
+    const ax = cx + Math.cos(midAngle) * LABEL_R;
+    const ay = cy + Math.sin(midAngle) * LABEL_R;
+    ctx.beginPath();
+    ctx.moveTo(dotX, dotY);
+    ctx.lineTo(ax, ay);
+    ctx.strokeStyle = seg.color + "88";
+    ctx.stroke();
+
+    // Short horizontal tick, direction based on which side of chart
+    const isRight = Math.cos(midAngle) >= 0;
+    const tx = ax + (isRight ? TICK_LEN : -TICK_LEN);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(tx, ay);
+    ctx.strokeStyle = seg.color + "88";
+    ctx.stroke();
+
+    // Label text at tick end
+    ctx.textAlign    = isRight ? "left" : "right";
+    ctx.textBaseline = "middle";
+    // Word label (profit / loss / flat)
+    ctx.fillStyle = seg.color;
+    ctx.font      = `600 ${SIZE * 0.072}px 'Syne', sans-serif`;
+    ctx.fillText(seg.label, isRight ? tx + 3 : tx - 3, ay);
   });
 
   // ── Centre — total days ───────────────────────────────────────
   ctx.textAlign    = "center";
   ctx.textBaseline = "middle";
 
-  // Total number
+  // Large total number
   ctx.fillStyle = "#e8eef8";
-  ctx.font      = `bold ${SIZE * 0.2}px 'Bebas Neue', cursive`;
-  ctx.fillText(total, cx, cy - SIZE * 0.045);
+  ctx.font      = `bold ${SIZE * 0.22}px 'Bebas Neue', cursive`;
+  ctx.fillText(total, cx, cy - SIZE * 0.04);
 
-  // "days run" label
-  ctx.fillStyle = "#5a6a85";
+  // Muted sub-label
+  ctx.fillStyle = "#3a4a65";
   ctx.font      = `${SIZE * 0.075}px 'Syne', sans-serif`;
-  ctx.fillText("days run", cx, cy + SIZE * 0.075);
+  ctx.fillText("days run", cx, cy + SIZE * 0.085);
 }
 
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
