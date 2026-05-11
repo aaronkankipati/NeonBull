@@ -433,13 +433,42 @@ body{
       </div>
     </div>
 
-    <!-- RIGHT: Donut — fills entire right half -->
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;position:relative;background:var(--card)" id="donutCell">
+    <!-- RIGHT: Win/Loss breakdown -->
+    <div style="display:flex;flex-direction:column;justify-content:space-between;padding:16px 14px 14px;position:relative;background:var(--card)" id="donutCell">
       <button class="kpi-help" onclick="showTip('daystats')" id="help-daystats" style="position:absolute;top:10px;right:10px">?</button>
-      <canvas id="donutChart" style="display:block"></canvas>
-      <span id="statDays"   style="display:none">—</span>
-      <span id="statProfit" style="display:none">—</span>
-      <span id="statLoss"   style="display:none">—</span>
+
+      <!-- Label -->
+      <div style="font-size:.56rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);margin-bottom:10px">Win / Loss</div>
+
+      <!-- Stat row: three numbers -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+        <div>
+          <div style="font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Days</div>
+          <div id="statDays" style="font-family:var(--disp);font-size:1.6rem;letter-spacing:.04em;line-height:1;color:var(--text)">—</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Profit</div>
+          <div id="statProfit" style="font-family:var(--disp);font-size:1.6rem;letter-spacing:.04em;line-height:1;color:var(--neon)">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Loss</div>
+          <div id="statLoss" style="font-family:var(--disp);font-size:1.6rem;letter-spacing:.04em;line-height:1;color:var(--bear)">—</div>
+        </div>
+      </div>
+
+      <!-- Stacked bar -->
+      <div>
+        <div style="height:8px;border-radius:6px;overflow:hidden;background:var(--border);position:relative">
+          <div id="barProfit" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--neon);border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1)"></div>
+          <div id="barLoss"   style="position:absolute;right:0;top:0;bottom:0;width:0%;background:var(--bear);border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <!-- Bar labels -->
+        <div style="display:flex;justify-content:space-between;margin-top:5px">
+          <div id="barProfitPct" style="font-size:.56rem;font-family:var(--mono);color:var(--neon);opacity:.7"></div>
+          <div id="barLossPct"   style="font-size:.56rem;font-family:var(--mono);color:var(--bear);opacity:.7"></div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -665,7 +694,7 @@ const TIPS={
       <div id="tipTotal" style="font-family:var(--mono);font-size:.88rem;font-weight:700">₹—</div>
     </div>`},
   status:{title:"Experiment Status",body:"A plain-English read on whether Claude is winning or losing vs the ₹10,000 it started with."},
-  daystats:{title:"Win / Loss Breakdown",body:"The donut shows every trading day Claude has run. Green slices are days the portfolio grew — red slices are days it shrank. The number in the centre is total days traded. The bigger the green, the better Claude is doing over time."},
+  daystats:{title:"Win / Loss Breakdown",body:"Every trading day Claude has run, counted and split by outcome. The bar shows the profit-to-loss ratio — green on the left, red on the right. As more days pass, the bar updates automatically. A growing green section means Claude is improving over time."},
   sessions:{title:"Why these times?",body:"9:30 AM when the market opens over breakfast — new entries allowed. 2:30 PM when institutional order books re-engage for the closing session — portfolio review only, no new buys. Claude trades at exactly these times every weekday."}
 };
 let idleTimer=null;
@@ -1012,135 +1041,31 @@ function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
 }
 
 // ── DONUT CHART ───────────────────────────────────────────────
-function drawDonut(profit, loss, neutral){
-  const canvas = document.getElementById("donutChart");
-  if(!canvas) return;
-  const dpr = devicePixelRatio || 1;
+function drawBar(profit, loss, neutral){
+  const total   = profit + loss + neutral || 0;
+  const profPct = total ? (profit  / total * 100) : 0;
+  const lossPct = total ? (loss    / total * 100) : 0;
 
-  // Fixed 160px canvas — reliable regardless of when layout fires.
-  // Labels are positioned mathematically so they never exceed this boundary.
-  const S = 192;
-  canvas.width  = S * dpr; canvas.height = S * dpr;
-  canvas.style.width = S + "px"; canvas.style.height = S + "px";
+  // Stat numbers
+  const dEl = document.getElementById("statDays");
+  const pEl = document.getElementById("statProfit");
+  const lEl = document.getElementById("statLoss");
+  if(dEl) dEl.textContent = total  || "—";
+  if(pEl) pEl.textContent = profit || "—";
+  if(lEl) lEl.textContent = loss   || "—";
 
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, S, S);
+  // Bar widths — small gap between so they don't merge
+  const GAP = total > 0 ? 1.5 : 0; // 1.5% visual gap
+  const bp = document.getElementById("barProfit");
+  const bl = document.getElementById("barLoss");
+  if(bp) bp.style.width = Math.max(profPct - GAP/2, 0).toFixed(1) + "%";
+  if(bl) bl.style.width = Math.max(lossPct - GAP/2, 0).toFixed(1) + "%";
 
-  const cx = S / 2, cy = S / 2;
-
-  // Ring occupies the inner 60% of canvas — 20% margin each side for labels
-  const r   = S * 0.185;   // outer radius — fits labels within S=192
-  const rIn = S * 0.110;   // inner radius
-
-  const total = profit + loss + neutral || 0;
-  const gap   = total > 1 ? 0.08 : 0;
-
-  const segs = [
-    { val: profit,  color: "#00ff88", halo: "#00ff8814", word: "PROFIT" },
-    { val: loss,    color: "#ff3d5a", halo: "#ff3d5a14", word: "LOSS"   },
-    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", halo: null, word: "FLAT" }] : []),
-  ].filter(s => s.val > 0);
-
-  // Empty state
-  if(!segs.length || total === 0){
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
-    ctx.fillStyle = "#1a2035"; ctx.fill();
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#3a4a65";
-    ctx.font = "10px \'Syne\',sans-serif";
-    ctx.fillText("no data", cx, cy);
-    return;
-  }
-
-  // Ring background
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI*2);
-  ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
-  ctx.fillStyle = "#0c0f18"; ctx.fill();
-
-  // Draw segments
-  let angle = -Math.PI / 2;
-  segs.forEach(seg => {
-    const frac  = seg.val / total;
-    const sweep = frac * Math.PI*2 - gap;
-    const end   = angle + sweep;
-    if(seg.halo){
-      ctx.beginPath();
-      ctx.arc(cx, cy, r+2, angle, end);
-      ctx.arc(cx, cy, rIn-2, end, angle, true);
-      ctx.closePath(); ctx.fillStyle = seg.halo; ctx.fill();
-    }
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, angle, end);
-    ctx.arc(cx, cy, rIn, end, angle, true);
-    ctx.closePath(); ctx.fillStyle = seg.color; ctx.fill();
-    seg._s = angle; seg._e = end; seg._f = frac;
-    angle = end + gap;
-  });
-
-  // Labels — fixed pixel sizes matching the card type scale
-  // word: ~8px Syne (matches .52rem), number: ~13px Bebas (matches .82rem mono values)
-  const WORD_PX = 8;   // matches .52rem
-  const NUM_PX  = 18;  // Bebas — optically matches .82rem mono
-  const LINE_R  = r + 12;   // elbow distance from centre
-  const TICK_W  = 10;        // horizontal tick length
-
-  ctx.lineCap = "round";
-
-  segs.forEach(seg => {
-    if(seg._f < 0.06) return;
-    const mid     = seg._s + (seg._e - seg._s) / 2;
-    const cosM    = Math.cos(mid);
-    const sinM    = Math.sin(mid);
-    const isRight = cosM >= 0;
-
-    // Leader: ring surface → elbow → tick
-    const ox = cx + cosM * r;
-    const oy = cy + sinM * r;
-    const ex = cx + cosM * LINE_R;
-    const ey = cy + sinM * LINE_R;
-    const tx = ex + (isRight ? TICK_W : -TICK_W);
-
-    ctx.lineWidth   = 0.6;
-    ctx.strokeStyle = seg.color + "38";
-    ctx.beginPath();
-    ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.lineTo(tx, ey);
-    ctx.stroke();
-
-    // Elbow dot
-    ctx.beginPath();
-    ctx.arc(ex, ey, 1.1, 0, Math.PI*2);
-    ctx.fillStyle = seg.color + "65"; ctx.fill();
-
-    // Text anchor — push 2px beyond tick end
-    const ta = isRight ? "left" : "right";
-    const lx = isRight ? tx + 2 : tx - 2;
-
-    // WORD — small muted, sits above the anchor line
-    ctx.textAlign    = ta;
-    ctx.textBaseline = "bottom";
-    ctx.font         = "600 " + WORD_PX + "px \'Syne\',sans-serif";
-    ctx.fillStyle    = seg.color + "60";
-    ctx.fillText(seg.word, lx, ey + 0.5);
-
-    // NUMBER — Bebas, sits below word
-    ctx.textBaseline = "top";
-    ctx.font         = "700 " + NUM_PX + "px \'Bebas Neue\',cursive";
-    ctx.fillStyle    = seg.color;
-    ctx.fillText(seg.val, lx, ey + 1.5);
-  });
-
-  // Centre
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = "bold 28px \'Bebas Neue\',cursive";
-  ctx.fillStyle = "#e8eef8";
-  ctx.fillText(total, cx, cy - 4);
-  ctx.font = "9px \'Syne\',sans-serif";
-  ctx.fillStyle = "#3a4a65";
-  ctx.fillText("days run", cx, cy + 12);
+  // Pct labels — only show when there's data
+  const ppEl = document.getElementById("barProfitPct");
+  const lpEl = document.getElementById("barLossPct");
+  if(ppEl) ppEl.textContent = total ? profPct.toFixed(0) + "% profit" : "";
+  if(lpEl) lpEl.textContent = total ? lossPct.toFixed(0) + "% loss"   : "";
 }
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
   const profit  = exp?.profitDays  || 0;
@@ -1150,7 +1075,7 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt)
   document.getElementById("statDays").textContent   = total;
   document.getElementById("statProfit").textContent = profit;
   document.getElementById("statLoss").textContent   = loss;
-  drawDonut(profit, loss, neutral);
+  drawBar(profit, loss, neutral);
   // Best / Worst day — label + date + context
   const bestPnl   = exp?.bestDay?.pnl  ?? null;
   const worstPnl  = exp?.worstDay?.pnl ?? null;
