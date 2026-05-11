@@ -394,7 +394,7 @@ body{
   </div>
 
   <!-- ROW 2: Unified Experiment + Donut panel -->
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;display:grid;grid-template-columns:1fr 1fr;min-height:200px" id="statusCard">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;display:grid;grid-template-columns:1fr 1fr" id="statusCard">
 
     <!-- Coloured top accent bar — spans full width, driven by JS -->
     <div id="statusAccentBar" style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--border2);transition:background .5s;z-index:2"></div>
@@ -1015,48 +1015,42 @@ function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
 function drawDonut(profit, loss, neutral){
   const canvas = document.getElementById("donutChart");
   if(!canvas) return;
-  const dpr  = devicePixelRatio || 1;
-  const card = canvas.parentElement;
+  const dpr = devicePixelRatio || 1;
 
-  // Fix: canvas must be large enough to hold labels on all sides.
-  // Labels need ~28% of radius on each side. Keep canvas square.
-  const cellW = card ? card.clientWidth - 8 : 150;
-  const SIZE  = Math.max(Math.min(cellW, 190), 130);
-
-  canvas.width        = SIZE * dpr;
-  canvas.height       = SIZE * dpr;
-  canvas.style.width  = SIZE + "px";
-  canvas.style.height = SIZE + "px";
+  // Fixed 160px canvas — reliable regardless of when layout fires.
+  // Labels are positioned mathematically so they never exceed this boundary.
+  const S = 192;
+  canvas.width  = S * dpr; canvas.height = S * dpr;
+  canvas.style.width = S + "px"; canvas.style.height = S + "px";
 
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.clearRect(0, 0, S, S);
 
-  const cx = SIZE / 2;
-  const cy = SIZE / 2;
+  const cx = S / 2, cy = S / 2;
 
-  // Ring takes up only 40% of canvas width — leaves 30% each side for labels
-  const r   = SIZE * 0.22;
-  const rIn = SIZE * 0.13;
+  // Ring occupies the inner 60% of canvas — 20% margin each side for labels
+  const r   = S * 0.185;   // outer radius — fits labels within S=192
+  const rIn = S * 0.110;   // inner radius
 
   const total = profit + loss + neutral || 0;
-  const gap   = total > 1 ? 0.07 : 0;
+  const gap   = total > 1 ? 0.08 : 0;
 
-  const segments = [
-    { val: profit,  color: "#00ff88", halo: "#00ff8815", word: "PROFIT" },
-    { val: loss,    color: "#ff3d5a", halo: "#ff3d5a15", word: "LOSS"   },
+  const segs = [
+    { val: profit,  color: "#00ff88", halo: "#00ff8814", word: "PROFIT" },
+    { val: loss,    color: "#ff3d5a", halo: "#ff3d5a14", word: "LOSS"   },
     ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", halo: null, word: "FLAT" }] : []),
   ].filter(s => s.val > 0);
 
   // Empty state
-  if(!segments.length || total === 0){
+  if(!segs.length || total === 0){
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
     ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
     ctx.fillStyle = "#1a2035"; ctx.fill();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillStyle = "#3a4a65";
-    ctx.font = (SIZE*0.08) + "px 'Syne',sans-serif";
+    ctx.font = "10px \'Syne\',sans-serif";
     ctx.fillText("no data", cx, cy);
     return;
   }
@@ -1067,9 +1061,9 @@ function drawDonut(profit, loss, neutral){
   ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
   ctx.fillStyle = "#0c0f18"; ctx.fill();
 
-  // Segments
+  // Draw segments
   let angle = -Math.PI / 2;
-  segments.forEach(seg => {
+  segs.forEach(seg => {
     const frac  = seg.val / total;
     const sweep = frac * Math.PI*2 - gap;
     const end   = angle + sweep;
@@ -1087,71 +1081,66 @@ function drawDonut(profit, loss, neutral){
     angle = end + gap;
   });
 
-  // Labels — placed in the safe zone outside the ring
-  // Each label: word (small, muted) stacked above number (large, coloured)
-  // Anchor point is pushed far enough that even long words ("PROFIT") never clip
-
-  const WORD_SIZE = Math.max(8,  SIZE * 0.062);
-  const NUM_SIZE  = Math.max(14, SIZE * 0.17);
-  const PUSH      = r + SIZE * 0.22;  // how far from centre to place anchor
-  const TICK      = SIZE * 0.07;
+  // Labels — fixed pixel sizes matching the card type scale
+  // word: ~8px Syne (matches .52rem), number: ~13px Bebas (matches .82rem mono values)
+  const WORD_PX = 8;   // matches .52rem
+  const NUM_PX  = 18;  // Bebas — optically matches .82rem mono
+  const LINE_R  = r + 12;   // elbow distance from centre
+  const TICK_W  = 10;        // horizontal tick length
 
   ctx.lineCap = "round";
 
-  segments.forEach(seg => {
+  segs.forEach(seg => {
     if(seg._f < 0.06) return;
-
     const mid     = seg._s + (seg._e - seg._s) / 2;
     const cosM    = Math.cos(mid);
     const sinM    = Math.sin(mid);
     const isRight = cosM >= 0;
 
-    // Leader line: ring surface → anchor → horizontal tick
+    // Leader: ring surface → elbow → tick
     const ox = cx + cosM * r;
     const oy = cy + sinM * r;
-    const ax = cx + cosM * PUSH;
-    const ay = cy + sinM * PUSH;
-    const tx = ax + (isRight ? TICK : -TICK);
+    const ex = cx + cosM * LINE_R;
+    const ey = cy + sinM * LINE_R;
+    const tx = ex + (isRight ? TICK_W : -TICK_W);
 
-    ctx.lineWidth   = 0.7;
-    ctx.strokeStyle = seg.color + "40";
+    ctx.lineWidth   = 0.6;
+    ctx.strokeStyle = seg.color + "38";
     ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(ax, ay);
-    ctx.lineTo(tx, ay);
+    ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.lineTo(tx, ey);
     ctx.stroke();
 
-    // Dot at elbow
+    // Elbow dot
     ctx.beginPath();
-    ctx.arc(ax, ay, 1.2, 0, Math.PI*2);
-    ctx.fillStyle = seg.color + "70"; ctx.fill();
+    ctx.arc(ex, ey, 1.1, 0, Math.PI*2);
+    ctx.fillStyle = seg.color + "65"; ctx.fill();
 
-    // Text position — measured so word never clips edge
+    // Text anchor — push 2px beyond tick end
     const ta = isRight ? "left" : "right";
-    const lx = isRight ? tx + 3 : tx - 3;
+    const lx = isRight ? tx + 2 : tx - 2;
 
-    // WORD — small muted uppercase (drawn first, sits above)
+    // WORD — small muted, sits above the anchor line
     ctx.textAlign    = ta;
     ctx.textBaseline = "bottom";
-    ctx.font         = "600 " + WORD_SIZE + "px 'Syne',sans-serif";
-    ctx.fillStyle    = seg.color + "65";
-    ctx.fillText(seg.word, lx, ay + 1);
+    ctx.font         = "600 " + WORD_PX + "px \'Syne\',sans-serif";
+    ctx.fillStyle    = seg.color + "60";
+    ctx.fillText(seg.word, lx, ey + 0.5);
 
-    // NUMBER — large coloured Bebas (drawn below word)
+    // NUMBER — Bebas, sits below word
     ctx.textBaseline = "top";
-    ctx.font         = "700 " + NUM_SIZE  + "px 'Bebas Neue',cursive";
+    ctx.font         = "700 " + NUM_PX + "px \'Bebas Neue\',cursive";
     ctx.fillStyle    = seg.color;
-    ctx.fillText(seg.val, lx, ay + 2);
+    ctx.fillText(seg.val, lx, ey + 1.5);
   });
 
   // Centre
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font      = "bold " + (SIZE*0.19) + "px 'Bebas Neue',cursive";
+  ctx.font = "bold 28px \'Bebas Neue\',cursive";
   ctx.fillStyle = "#e8eef8";
-  ctx.fillText(total, cx, cy - SIZE*0.025);
-  ctx.font      = (SIZE*0.058) + "px 'Syne',sans-serif";
+  ctx.fillText(total, cx, cy - 4);
+  ctx.font = "9px \'Syne\',sans-serif";
   ctx.fillStyle = "#3a4a65";
-  ctx.fillText("days run", cx, cy + SIZE*0.088);
+  ctx.fillText("days run", cx, cy + 12);
 }
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
   const profit  = exp?.profitDays  || 0;
