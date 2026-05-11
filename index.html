@@ -127,6 +127,7 @@ body{
 /* ── STATUS CARD ── */
 .status-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;position:relative;overflow:hidden;transition:border-color .2s}
 .status-card.signalling{animation:card-signal 600ms ease-out forwards}
+#donutCell.signalling{animation:card-signal 600ms ease-out forwards}
 .status-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--status-accent,var(--border2))}
 .status-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
 .status-icon{font-size:1.2rem;line-height:1;margin-bottom:4px}
@@ -399,7 +400,7 @@ body{
     <div id="statusAccentBar" style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--border2);transition:background .5s;z-index:2"></div>
 
     <!-- LEFT: Experiment narrative -->
-    <div style="padding:16px 14px 14px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--border);position:relative">
+    <div style="padding:16px 14px 14px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--border);position:relative;background:var(--card)">
       <button class="kpi-help" onclick="showTip('status')" id="help-status" style="position:absolute;top:10px;right:10px">?</button>
 
       <!-- Top: label + status -->
@@ -433,7 +434,7 @@ body{
     </div>
 
     <!-- RIGHT: Donut — fills entire right half -->
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;position:relative" class="kpi-card" id="donutCell">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;position:relative;background:var(--card)" id="donutCell">
       <button class="kpi-help" onclick="showTip('daystats')" id="help-daystats" style="position:absolute;top:10px;right:10px">?</button>
       <canvas id="donutChart" style="display:block"></canvas>
       <span id="statDays"   style="display:none">—</span>
@@ -1015,11 +1016,9 @@ function drawDonut(profit, loss, neutral){
   const canvas = document.getElementById("donutChart");
   if(!canvas) return;
   const dpr  = devicePixelRatio || 1;
-
-  // Size to fill the right cell — leave room for external callout labels
   const card = canvas.parentElement;
-  const avail = card ? Math.min(card.clientWidth - 16, 148) : 140;
-  const SIZE  = Math.max(avail, 120);
+  const cellW = card ? card.clientWidth : 160;
+  const SIZE  = Math.max(Math.min(cellW - 4, 190), 130);
 
   canvas.width        = SIZE * dpr;
   canvas.height       = SIZE * dpr;
@@ -1030,128 +1029,119 @@ function drawDonut(profit, loss, neutral){
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, SIZE, SIZE);
 
-  const cx  = SIZE / 2, cy = SIZE / 2;
-  const r   = SIZE * 0.36;  // outer radius
-  const rIn = SIZE * 0.22;  // inner radius — ring width ≈ 14% of canvas
+  const cx = SIZE / 2, cy = SIZE / 2;
+  const r   = SIZE * 0.28;   // outer radius — compact, leaves room for labels
+  const rIn = SIZE * 0.165;  // inner radius
 
   const total = profit + loss + neutral || 0;
-  const gap   = total > 1 ? 0.06 : 0; // gap only when multiple segments
+  const gap   = total > 1 ? 0.07 : 0;
 
   const segments = [
-    { val: profit,  color: "#00ff88", glow: "#00ff8830", label: "profit" },
-    { val: loss,    color: "#ff3d5a", glow: "#ff3d5a30", label: "loss"   },
-    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", glow: null, label: "flat" }] : []),
+    { val: profit,  color: "#00ff88", halo: "#00ff8815", label: "profit" },
+    { val: loss,    color: "#ff3d5a", halo: "#ff3d5a15", label: "loss"   },
+    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", halo: null, label: "flat" }] : []),
   ].filter(s => s.val > 0);
 
   // ── Empty state ───────────────────────────────────────────────
-  if(segments.length === 0 || total === 0){
+  if(!segments.length || total === 0){
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.arc(cx, cy, rIn, Math.PI * 2, 0, true);
-    ctx.fillStyle = "#1a2035";
-    ctx.fill();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
+    ctx.fillStyle = "#1a2035"; ctx.fill();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#5a6a85";
-    ctx.font = `${SIZE * 0.1}px 'Syne', sans-serif`;
+    ctx.fillStyle = "#3a4a65";
+    ctx.font = (SIZE*0.08)+"px 'Syne',sans-serif";
     ctx.fillText("no data yet", cx, cy);
     return;
   }
 
-  // ── Draw segments ────────────────────────────────────────────
-  let startAngle = -Math.PI / 2; // 12 o'clock
+  // ── Ring background ───────────────────────────────────────────
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.arc(cx, cy, rIn, Math.PI*2, 0, true);
+  ctx.fillStyle = "#0c0f18"; ctx.fill();
 
+  // ── Segments ──────────────────────────────────────────────────
+  let angle = -Math.PI / 2;
   segments.forEach(seg => {
-    const frac     = seg.val / total;
-    const sweep    = frac * Math.PI * 2 - gap;
-    const endAngle = startAngle + sweep;
-
-    // Subtle glow halo behind segment
-    if(seg.glow){
+    const frac  = seg.val / total;
+    const sweep = frac * Math.PI*2 - gap;
+    const end   = angle + sweep;
+    // Halo
+    if(seg.halo){
       ctx.beginPath();
-      ctx.arc(cx, cy, r + 2.5, startAngle, endAngle);
-      ctx.arc(cx, cy, rIn - 2.5, endAngle, startAngle, true);
-      ctx.closePath();
-      ctx.fillStyle = seg.glow;
-      ctx.fill();
+      ctx.arc(cx, cy, r+3, angle, end);
+      ctx.arc(cx, cy, rIn-3, end, angle, true);
+      ctx.closePath(); ctx.fillStyle = seg.halo; ctx.fill();
     }
-
-    // Main arc
+    // Arc
     ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.arc(cx, cy, rIn, endAngle, startAngle, true);
-    ctx.closePath();
-    ctx.fillStyle = seg.color;
-    ctx.fill();
-
-    seg._startAngle = startAngle;
-    seg._endAngle   = endAngle;
-    seg._frac       = frac;
-    startAngle = endAngle + gap;
+    ctx.arc(cx, cy, r, angle, end);
+    ctx.arc(cx, cy, rIn, end, angle, true);
+    ctx.closePath(); ctx.fillStyle = seg.color; ctx.fill();
+    seg._s = angle; seg._e = end; seg._f = frac;
+    angle = end + gap;
   });
 
-  // ── External callout labels — premium tick style ──────────────
-  // Only draw callouts when segment is large enough to place one cleanly (> 12%)
-  const LABEL_R  = r + SIZE * 0.10; // anchor point outside ring
-  const TICK_LEN = SIZE * 0.07;     // horizontal tick length
+  // ── Callout labels — word + number, stacked, clean ───────────
+  // Design: short radial line from ring edge → small dot → word (muted) → number (large, coloured)
+  const LINE_END = r + SIZE * 0.17;  // where the short line ends
+  const TICK     = SIZE * 0.08;      // horizontal tick
 
-  ctx.font      = `500 ${SIZE * 0.075}px 'Syne', sans-serif`;
-  ctx.lineWidth = 0.8;
+  ctx.lineCap = "round";
 
   segments.forEach(seg => {
-    if(seg._frac < 0.12) return; // too small — skip to avoid overlap
+    if(seg._f < 0.08) return;
+    const mid     = seg._s + (seg._e - seg._s) / 2;
+    const isRight = Math.cos(mid) >= 0;
 
-    const midAngle = seg._startAngle + (seg._endAngle - seg._startAngle) / 2;
+    // Short radial line from ring surface to label anchor
+    const ox  = cx + Math.cos(mid) * r;
+    const oy  = cy + Math.sin(mid) * r;
+    const ex  = cx + Math.cos(mid) * LINE_END;
+    const ey  = cy + Math.sin(mid) * LINE_END;
+    const tx  = ex + (isRight ? TICK : -TICK);
 
-    // Dot on outer ring edge
-    const dotX = cx + Math.cos(midAngle) * r;
-    const dotY = cy + Math.sin(midAngle) * r;
+    ctx.lineWidth   = 0.75;
+    ctx.strokeStyle = seg.color + "45";
     ctx.beginPath();
-    ctx.arc(dotX, dotY, 2, 0, Math.PI * 2);
-    ctx.fillStyle = seg.color;
-    ctx.fill();
-
-    // Radial line from dot outward
-    const ax = cx + Math.cos(midAngle) * LABEL_R;
-    const ay = cy + Math.sin(midAngle) * LABEL_R;
-    ctx.beginPath();
-    ctx.moveTo(dotX, dotY);
-    ctx.lineTo(ax, ay);
-    ctx.strokeStyle = seg.color + "88";
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(ex, ey);
+    ctx.lineTo(tx, ey);
     ctx.stroke();
 
-    // Short horizontal tick, direction based on which side of chart
-    const isRight = Math.cos(midAngle) >= 0;
-    const tx = ax + (isRight ? TICK_LEN : -TICK_LEN);
+    // Small dot at elbow
     ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(tx, ay);
-    ctx.strokeStyle = seg.color + "88";
-    ctx.stroke();
+    ctx.arc(ex, ey, 1.2, 0, Math.PI*2);
+    ctx.fillStyle = seg.color + "80"; ctx.fill();
 
-    // Label text at tick end
-    ctx.textAlign    = isRight ? "left" : "right";
-    ctx.textBaseline = "middle";
-    // Word label (profit / loss / flat)
-    ctx.fillStyle = seg.color;
-    ctx.font      = `600 ${SIZE * 0.072}px 'Syne', sans-serif`;
-    ctx.fillText(seg.label, isRight ? tx + 3 : tx - 3, ay);
+    // Text anchor
+    const lx = isRight ? tx + 4 : tx - 4;
+    const ta  = isRight ? "left" : "right";
+
+    // ROW 1: word — small, muted uppercase
+    ctx.textAlign    = ta;
+    ctx.textBaseline = "alphabetic";
+    ctx.font         = "600 " + (SIZE*0.062)+"px 'Syne',sans-serif";
+    ctx.fillStyle    = seg.color + "70";
+    ctx.fillText(seg.label.toUpperCase(), lx, ey - SIZE*0.005);
+
+    // ROW 2: number — large, fully coloured, Bebas
+    ctx.font         = "700 " + (SIZE*0.18)+"px 'Bebas Neue',cursive";
+    ctx.fillStyle    = seg.color;
+    ctx.textBaseline = "top";
+    ctx.fillText(seg.val, lx, ey + SIZE*0.01);
   });
 
-  // ── Centre — total days ───────────────────────────────────────
-  ctx.textAlign    = "center";
-  ctx.textBaseline = "middle";
-
-  // Large total number
+  // ── Centre ────────────────────────────────────────────────────
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font      = "bold "+(SIZE*0.20)+"px 'Bebas Neue',cursive";
   ctx.fillStyle = "#e8eef8";
-  ctx.font      = `bold ${SIZE * 0.22}px 'Bebas Neue', cursive`;
-  ctx.fillText(total, cx, cy - SIZE * 0.04);
-
-  // Muted sub-label
+  ctx.fillText(total, cx, cy - SIZE*0.03);
+  ctx.font      = (SIZE*0.062)+"px 'Syne',sans-serif";
   ctx.fillStyle = "#3a4a65";
-  ctx.font      = `${SIZE * 0.075}px 'Syne', sans-serif`;
-  ctx.fillText("days run", cx, cy + SIZE * 0.085);
+  ctx.fillText("days run", cx, cy + SIZE*0.09);
 }
-
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
   const profit  = exp?.profitDays  || 0;
   const loss    = exp?.lossDays    || 0;
