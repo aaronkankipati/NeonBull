@@ -168,10 +168,10 @@ body{
 .scroll-hint svg{opacity:.5}
 
 /* ── CHART ── */
-.chart-wrap{padding:14px 14px 10px 14px;display:flex;align-items:flex-start;gap:0;overflow:hidden}
-#chartScroller{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
+.chart-wrap{padding:14px 14px 10px 0;display:flex;align-items:flex-start;gap:0;overflow:hidden}
+#chartScroller{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
 #chartScroller::-webkit-scrollbar{display:none}
-#chartYAxis{flex-shrink:0;display:block}
+#chartYAxis{flex-shrink:0;display:block;width:52px}
 #chart{display:block}
 .chart-wrap canvas{width:auto!important}
 
@@ -401,8 +401,8 @@ body{
       <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
         <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)" id="statusStarted">Started · —</div>
         <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Best<br><span id="statBest" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--neon);letter-spacing:0;text-transform:none">—</span></div>
-          <div style="text-align:right;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Worst<br><span id="statWorst" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--bear);letter-spacing:0;text-transform:none">—</span></div>
+          <div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)"><span id="statBestLabel">Best</span><br><span id="statBest" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--neon);letter-spacing:0;text-transform:none">—</span></div>
+          <div style="text-align:right;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)"><span id="statWorstLabel">Worst</span><br><span id="statWorst" style="font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--bear);letter-spacing:0;text-transform:none">—</span></div>
         </div>
       </div>
     </div>
@@ -769,11 +769,11 @@ function drawChart(labels,values,dayPnl){
 
   // ── Plot width: fixed px-per-point, minimum fills scroller ──
   const scroller = document.getElementById("chartScroller");
-  const scrollerW = scroller ? scroller.clientWidth : 300;
-  const PX_PER_PT = 36;
+  const scrollerW = scroller ? (scroller.offsetWidth || scroller.clientWidth || 260) : 260;
+  const PX_PER_PT = 48; // generous — prevents label collision even on small datasets
   const plotW = Math.max(
     scrollerW,
-    values.length > 1 ? (values.length - 1) * PX_PER_PT + pad.r + 8 : scrollerW
+    values.length > 1 ? (values.length - 1) * PX_PER_PT + pad.r + 24 : scrollerW
   );
   const xs = values.length > 1 ? (plotW - pad.r) / (values.length - 1) : plotW / 2;
 
@@ -909,19 +909,24 @@ function drawChart(labels,values,dayPnl){
   ctx.fillStyle  = "#3a4a65";
   ctx.font       = "9px JetBrains Mono";
   ctx.textAlign  = "center";
-  const lblY     = lblTop + LBL_H * 0.65; // vertically centred in label zone
-  // Show every Nth label so they don't collide (each label ~28px wide)
-  const maxLabels = Math.floor(plotW / 30);
+  const lblY     = lblTop + LBL_H * 0.65;
+  const LBL_MIN_GAP = 30; // minimum px between label centres to avoid collision
+  const maxLabels = Math.max(2, Math.floor(plotW / LBL_MIN_GAP));
   const step = Math.max(1, Math.ceil((labels.length - 1) / (maxLabels - 1)));
+  let lastLblX = -LBL_MIN_GAP; // track last drawn position
   labels.forEach((l, i) => {
     const isLast = i === labels.length - 1;
     if (i % step !== 0 && !isLast) return;
     const lbl = l.slice(5); // "MM-DD"
+    const lw  = ctx.measureText(lbl).width;
+    // Clamp: first label left-aligned, last right-aligned, others centred
     let x = pts[i].x;
-    // Clamp so label stays within canvas
-    const hw = 14;
-    x = Math.max(hw, Math.min(plotW - hw, x));
+    if (i === 0)      x = lw / 2 + 2;
+    else if (isLast)  x = plotW - lw / 2 - 2;
+    // Skip if this label would overlap the previous one
+    if (x - lw / 2 < lastLblX + LBL_MIN_GAP / 2 && !isLast) return;
     ctx.fillText(lbl, x, lblY);
+    lastLblX = x;
   });
 
   // Scroll to latest (rightmost) on first draw
@@ -989,11 +994,39 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt)
   document.getElementById("statDays").textContent=exp?.totalDays||0;
   document.getElementById("statProfit").textContent=exp?.profitDays||0;
   document.getElementById("statLoss").textContent=exp?.lossDays||0;
-  // New rows
-  const bestEl=document.getElementById("statBest");
-  if(bestEl) bestEl.textContent=exp?.bestDay?.pnl!=null?(exp.bestDay.pnl>=0?"+":"")+fINR(exp.bestDay.pnl):"—";
-  const worstEl=document.getElementById("statWorst");
-  if(worstEl) worstEl.textContent=exp?.worstDay?.pnl!=null?fINR(exp.worstDay.pnl):"—";
+  // Best / Worst day — label adapts to context
+  const bestPnl  = exp?.bestDay?.pnl  ?? null;
+  const worstPnl = exp?.worstDay?.pnl ?? null;
+  const bestEl   = document.getElementById("statBest");
+  const worstEl  = document.getElementById("statWorst");
+  const bestLbl  = document.getElementById("statBestLabel");
+  const worstLbl = document.getElementById("statWorstLabel");
+  if(bestEl) {
+    if(bestPnl === null) {
+      bestEl.textContent = "—";
+      bestEl.style.color = "var(--sub)";
+    } else if(bestPnl >= 0) {
+      // Genuinely a profit day — green, label "Best"
+      bestEl.textContent = "+" + fINR(bestPnl);
+      bestEl.style.color = "var(--neon)";
+      if(bestLbl) bestLbl.textContent = "Best Day";
+    } else {
+      // All days were losses — show least bad, label clearly
+      bestEl.textContent = fINR(bestPnl);
+      bestEl.style.color = "var(--gold)";
+      if(bestLbl) bestLbl.textContent = "Least Loss";
+    }
+  }
+  if(worstEl) {
+    if(worstPnl === null) {
+      worstEl.textContent = "—";
+      worstEl.style.color = "var(--sub)";
+    } else {
+      worstEl.textContent = fINR(worstPnl);
+      worstEl.style.color = "var(--bear)";
+      if(worstLbl) worstLbl.textContent = "Worst Day";
+    }
+  }
   // Dynamic started date from createdAt
   const startedEl=document.getElementById("statusStarted");
   if(startedEl&&createdAt){
@@ -1034,19 +1067,46 @@ function renderSession(s){
   if(mkt){mkt.textContent=s.marketOpen?"Open":"Closed";mkt.className="mkt-pill "+(s.marketOpen?"mkt-open":"mkt-closed");}
 }
 
+// ── Stock name masking for insight text ───────────────────────
+// The worker masks trade symbols but insight text (analysis, risk, etc.)
+// comes raw from Claude and may contain real NSE tickers. Scrub them here.
+const NSE_TICKER_RE = /\b([A-Z]{2,}(?:BANK|FIN|TECH|PHARMA|STEEL|AUTO|GAS|OIL|POWER|LIFE|MART|UNILVR|FINANCE)?[A-Z]*)\b(?:\.NS)?/g;
+// Build a set of known Nifty50 bare names to catch (without .NS suffix)
+const KNOWN_TICKERS = new Set([
+  "RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","HINDUNILVR","SBIN",
+  "BAJFINANCE","BHARTIARTL","KOTAKBANK","LT","WIPRO","HCLTECH","ASIANPAINT",
+  "AXISBANK","MARUTI","SUNPHARMA","TITAN","ULTRACEMCO","NESTLEIND","TECHM",
+  "POWERGRID","NTPC","TATAMOTORS","ONGC","JSWSTEEL","TATASTEEL","ADANIENT",
+  "ADANIPORTS","BAJAJFINSV"
+]);
+function maskInsightText(text){
+  if(!text) return text;
+  // Replace any known ticker (with or without .NS) with [STOCK]
+  return text.replace(/\b([A-Z]{3,})(?:\.NS)?\b/g, (match, ticker) => {
+    if(KNOWN_TICKERS.has(ticker)) return "[STOCK]";
+    return match;
+  });
+}
+
 function renderAI(ins){
   const body=document.getElementById("aiBody");
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
-  document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
-  const assessBlock=ins.portfolioAssessment
-    ?`<div style="font-size:.74rem;color:var(--sub);font-style:italic;line-height:1.65;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">${ins.portfolioAssessment}</div>`
+  // Mask all text fields before rendering
+  const outlook    = maskInsightText(ins.marketOutlook||"—");
+  const assessment = maskInsightText(ins.portfolioAssessment||"");
+  const analysis   = maskInsightText(ins.analysis||"—");
+  const risk       = maskInsightText(ins.riskAssessment||"");
+  const expNote    = maskInsightText(ins.experimentNote||"");
+  document.getElementById("claudeMeta").textContent=outlook.slice(0,45)||"Latest analysis";
+  const assessBlock=assessment
+    ?`<div style="font-size:.74rem;color:var(--sub);font-style:italic;line-height:1.65;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">${assessment}</div>`
     :"";
   body.innerHTML=`${assessBlock}<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
-    <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
-    <div class="ai-analysis">${ins.analysis||"—"}</div>
-    ${ins.riskAssessment?`<div class="ai-risk">${ins.riskAssessment}</div>`:""}
-    ${ins.experimentNote?`<div class="ai-exp">${ins.experimentNote}</div>`:""}`;
+    <div class="ai-outlook">${outlook}</div>
+    <div class="ai-analysis">${analysis}</div>
+    ${risk?`<div class="ai-risk">${risk}</div>`:""}
+    ${expNote?`<div class="ai-exp">${expNote}</div>`:""}`;
 }
 
 function renderPositions(positions){
