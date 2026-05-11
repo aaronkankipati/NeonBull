@@ -419,19 +419,22 @@ body{
       </div>
     </div>
 
-    <!-- Stats card -->
-    <div class="kpi-card" style="--kpi-accent:var(--sub);display:flex;flex-direction:column;justify-content:space-between;gap:0;padding:14px 12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
-        <div style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub)">Days Run</div>
-        <div class="stat-val gold" id="statDays" style="font-family:var(--disp);font-size:1.4rem;letter-spacing:.04em;line-height:1">—</div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub)">Profit Days</div>
-        <div class="stat-val bull" id="statProfit" style="font-family:var(--disp);font-size:1.4rem;letter-spacing:.04em;line-height:1">—</div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:9px">
-        <div style="font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub)">Loss Days</div>
-        <div class="stat-val bear" id="statLoss" style="font-family:var(--disp);font-size:1.4rem;letter-spacing:.04em;line-height:1">—</div>
+    <!-- Stats card — donut chart -->
+    <div class="kpi-card" style="--kpi-accent:var(--sub);padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+      <canvas id="donutChart" width="120" height="120" style="display:block;width:120px;height:120px"></canvas>
+      <div style="display:flex;justify-content:space-between;width:100%;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="text-align:center">
+          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Days</div>
+          <div id="statDays" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--gold)">—</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Profit</div>
+          <div id="statProfit" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--neon)">—</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Loss</div>
+          <div id="statLoss" style="font-family:var(--disp);font-size:1.2rem;letter-spacing:.04em;line-height:1;color:var(--bear)">—</div>
+        </div>
       </div>
     </div>
 
@@ -1006,10 +1009,89 @@ function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
   // Breakdown lives in the Total P&L ? tooltip — no standalone card needed
 }
 
+// ── DONUT CHART ───────────────────────────────────────────────
+function drawDonut(profit, loss, neutral){
+  const canvas = document.getElementById("donutChart");
+  if(!canvas) return;
+  const dpr = devicePixelRatio || 1;
+  const SIZE = 120;
+  canvas.width  = SIZE * dpr;
+  canvas.height = SIZE * dpr;
+  canvas.style.width  = SIZE + "px";
+  canvas.style.height = SIZE + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  const cx = SIZE / 2, cy = SIZE / 2;
+  const r  = 46,  rIn = 30; // outer and inner radius → ring width = 16px
+  const total = profit + loss + neutral || 1;
+  const gap   = 0.04; // radians gap between segments
+
+  // Segments: profit (green), loss (red), neutral (muted) if any
+  const segments = [
+    { val: profit,  color: "#00ff88", glow: "#00ff8840" },
+    { val: loss,    color: "#ff3d5a", glow: "#ff3d5a40" },
+    ...(neutral > 0 ? [{ val: neutral, color: "#2a3550", glow: null }] : []),
+  ].filter(s => s.val > 0);
+
+  // Track angles
+  let startAngle = -Math.PI / 2; // start at 12 o'clock
+
+  if(segments.length === 0){
+    // Empty state — full grey ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, rIn, Math.PI * 2, 0, true);
+    ctx.fillStyle = "#1a2035";
+    ctx.fill();
+  } else {
+    segments.forEach(seg => {
+      const sweep = (seg.val / total) * (Math.PI * 2) - gap;
+      const endAngle = startAngle + sweep;
+
+      // Glow layer (slightly wider, transparent)
+      if(seg.glow){
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 2, startAngle, endAngle);
+        ctx.arc(cx, cy, rIn - 2, endAngle, startAngle, true);
+        ctx.closePath();
+        ctx.fillStyle = seg.glow;
+        ctx.fill();
+      }
+
+      // Main segment
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.arc(cx, cy, rIn, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+
+      startAngle = endAngle + gap;
+    });
+  }
+
+  // Centre label — total days
+  ctx.textAlign    = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle    = "#e8eef8";
+  ctx.font         = `bold ${SIZE * 0.18}px 'Bebas Neue', cursive`;
+  ctx.fillText(total === 1 && profit + loss + neutral === 0 ? "—" : profit + loss + neutral, cx, cy - 5);
+  ctx.font      = `${SIZE * 0.085}px 'Syne', sans-serif`;
+  ctx.fillStyle = "#5a6a85";
+  ctx.fillText("days", cx, cy + 10);
+}
+
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,createdAt,lastRunAt){
-  document.getElementById("statDays").textContent=exp?.totalDays||0;
-  document.getElementById("statProfit").textContent=exp?.profitDays||0;
-  document.getElementById("statLoss").textContent=exp?.lossDays||0;
+  const profit  = exp?.profitDays  || 0;
+  const loss    = exp?.lossDays    || 0;
+  const neutral = exp?.neutralDays || 0;
+  const total   = exp?.totalDays   || 0;
+  document.getElementById("statDays").textContent   = total;
+  document.getElementById("statProfit").textContent = profit;
+  document.getElementById("statLoss").textContent   = loss;
+  drawDonut(profit, loss, neutral);
   // Best / Worst day — label + date + context
   const bestPnl   = exp?.bestDay?.pnl  ?? null;
   const worstPnl  = exp?.worstDay?.pnl ?? null;
