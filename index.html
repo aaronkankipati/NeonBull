@@ -101,20 +101,33 @@ body{
 .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px 13px;position:relative;overflow:hidden;transition:border-color .2s}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--kpi-accent,var(--border2));border-radius:var(--r) var(--r) 0 0}
-.kpi-help{position:absolute;top:8px;right:8px;width:17px;height:17px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--sub);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-family:var(--body)}
-.kpi-help:hover,.kpi-help.nudge{border-color:var(--gold);color:var(--gold);box-shadow:0 0 8px var(--gold-dim)}
-/* Market Signal nudge — card border flash + icon glow */
-@keyframes card-signal{0%{border-color:rgba(245,166,35,0.6)}60%{border-color:rgba(245,166,35,0.6)}100%{border-color:var(--border)}}
-@keyframes icon-glow{0%,100%{border-color:var(--border2);color:var(--sub);box-shadow:none}40%,60%{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(245,166,35,0.35)}}
-.kpi-card.signalling{animation:card-signal 600ms ease-out forwards}
+.kpi-help{position:absolute;top:8px;right:8px;width:17px;height:17px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--sub);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .3s,color .3s,box-shadow .3s,transform .3s;font-family:var(--body)}
+.kpi-help:hover{border-color:rgba(245,166,35,0.5);color:var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,0.08),0 0 12px rgba(245,166,35,0.15);transform:scale(1.08)}
+/* Premium nudge — scales up softly, ring expands and dissolves, text brightens, all eased */
+@keyframes nudge-breathe{
+  0%  {transform:scale(1);    border-color:var(--border2);           color:var(--sub);  box-shadow:0 0 0 0px rgba(245,166,35,0),   0 0 0px  rgba(245,166,35,0)}
+  25% {transform:scale(1.18); border-color:rgba(245,166,35,0.7);     color:var(--gold); box-shadow:0 0 0 4px rgba(245,166,35,0.1), 0 0 14px rgba(245,166,35,0.2)}
+  55% {transform:scale(1.13); border-color:rgba(245,166,35,0.45);    color:var(--gold); box-shadow:0 0 0 7px rgba(245,166,35,0.05),0 0 20px rgba(245,166,35,0.12)}
+  100%{transform:scale(1);    border-color:var(--border2);           color:var(--sub);  box-shadow:0 0 0 0px rgba(245,166,35,0),   0 0 0px  rgba(245,166,35,0)}
+}
+.kpi-help.nudge{animation:nudge-breathe 1600ms cubic-bezier(0.4,0,0.2,1) forwards}
+/* Card signal — whisper-soft border fade, not a flash */
+@keyframes card-signal{
+  0%  {border-color:var(--border)}
+  20% {border-color:rgba(245,166,35,0.28)}
+  60% {border-color:rgba(245,166,35,0.18)}
+  100%{border-color:var(--border)}
+}
+.kpi-card.signalling{animation:card-signal 1400ms cubic-bezier(0.4,0,0.2,1) forwards}
+.status-card.signalling{animation:card-signal 1400ms cubic-bezier(0.4,0,0.2,1) forwards}
 @keyframes hero-breathe{
-  0%{border-color:var(--border);box-shadow:none}
-  30%{border-color:rgba(245,166,35,0.35);box-shadow:0 0 28px rgba(245,166,35,0.08),inset 0 0 28px rgba(245,166,35,0.03)}
-  60%{border-color:rgba(245,166,35,0.25);box-shadow:0 0 40px rgba(245,166,35,0.06),inset 0 0 40px rgba(245,166,35,0.02)}
+  0%  {border-color:var(--border);box-shadow:none}
+  25% {border-color:rgba(245,166,35,0.22);box-shadow:0 0 32px rgba(245,166,35,0.06),inset 0 0 24px rgba(245,166,35,0.02)}
+  60% {border-color:rgba(245,166,35,0.14);box-shadow:0 0 48px rgba(245,166,35,0.04),inset 0 0 36px rgba(245,166,35,0.01)}
   100%{border-color:var(--border);box-shadow:none}
 }
-.hero.signalling{animation:hero-breathe 1800ms cubic-bezier(0.4,0,0.2,1) forwards}
-.kpi-help.nudge{animation:icon-glow 900ms ease-in-out forwards}
+.hero.signalling{animation:hero-breathe 2200ms cubic-bezier(0.4,0,0.2,1) forwards}
+@keyframes icon-glow{0%,100%{border-color:var(--border2);color:var(--sub);box-shadow:none}40%,60%{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(245,166,35,0.35)}}
 .kpi-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
 .kpi-value{font-family:var(--disp);font-size:1.5rem;letter-spacing:.04em;line-height:1;margin-bottom:4px}
 .kpi-sub{font-size:.66rem;color:var(--sub);line-height:1.4}
@@ -384,43 +397,76 @@ canvas{display:block;width:100%!important}
     </div>
   </div>
 
-  <!-- ROW 2: Unified experiment status card -->
-  <div class="status-card" id="statusCard" style="margin:0;padding:16px 16px 14px">
-    <button class="kpi-help" onclick="showTip('status')" id="help-status" style="position:absolute;top:12px;right:12px">?</button>
+  <!-- ROW 2: Two focused cards side by side -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch">
 
-    <!-- Top row: verdict + days badge -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <!-- Card A: Experiment Status -->
+    <div class="status-card" id="statusCard" style="margin:0;padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:space-between;gap:0">
+      <!-- Eyebrow -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Experiment</span>
+        <button class="kpi-help" onclick="showTip('status')" id="help-status" style="position:static;flex-shrink:0">?</button>
+      </div>
+      <!-- Verdict -->
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+        <span id="statusIcon" style="font-size:.95rem;line-height:1;flex-shrink:0">—</span>
+        <span id="statusHeadline" style="font-size:.82rem;font-weight:700;line-height:1.25;color:var(--text)">—</span>
+      </div>
+      <div id="statusSub" style="font-size:.66rem;color:var(--sub);line-height:1.4;margin-bottom:10px">—</div>
+      <!-- Win rate bar -->
       <div>
-        <div style="font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:4px">Experiment · Started 4 May 2026</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="statusIcon" style="font-size:1.1rem;line-height:1">—</span>
-          <span id="statusHeadline" style="font-size:.95rem;font-weight:700;line-height:1.2">—</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:.6rem;font-weight:600;color:var(--neon)" id="statWinLabel">—W</span>
+          <span style="font-size:.6rem;color:var(--sub)" id="statWinRate">—</span>
+          <span style="font-size:.6rem;font-weight:600;color:var(--bear)" id="statLossLabel">—L</span>
         </div>
-        <div id="statusSub" style="font-size:.72rem;color:var(--sub);margin-top:4px">—</div>
+        <div style="height:4px;border-radius:2px;background:var(--bear-dim);border:1px solid var(--bear-border);overflow:hidden">
+          <div id="statWinBar" style="height:100%;border-radius:2px;background:var(--neon);width:0%;transition:width .7s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
       </div>
-      <div style="text-align:center;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;flex-shrink:0">
-        <div style="font-family:var(--disp);font-size:1.8rem;letter-spacing:.04em;line-height:1;color:var(--gold)" id="statDays">—</div>
-        <div style="font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);margin-top:3px">Days</div>
+      <!-- Footer: days count -->
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Since 4 May 2026</span>
+        <span style="font-family:var(--disp);font-size:1rem;letter-spacing:.04em;color:var(--gold)" id="statDays">—</span>
+      </div>
+      <!-- Hidden compat -->
+      <span id="statProfit" style="display:none">—</span>
+      <span id="statLoss" style="display:none">—</span>
+      <span id="statProfitSub" style="display:none"></span>
+      <span id="statLossSub" style="display:none"></span>
+    </div>
+
+    <!-- Card B: Market Pulse -->
+    <div class="kpi-card" style="--kpi-accent:var(--blue);padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:space-between">
+      <!-- Eyebrow -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Market Pulse</span>
+        <button class="kpi-help" onclick="showTip('market')" id="help-market" style="position:static;flex-shrink:0">?</button>
+      </div>
+      <!-- Nifty -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Nifty 50</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-family:var(--disp);font-size:1.3rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="niftyVal">—</span>
+          <span style="font-size:.72rem;font-weight:600" id="niftyChg">—</span>
+        </div>
+      </div>
+      <!-- Divider -->
+      <div style="height:1px;background:var(--border);margin-bottom:8px"></div>
+      <!-- Sensex -->
+      <div>
+        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Sensex</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-family:var(--disp);font-size:1.3rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="sensexVal">—</span>
+          <span style="font-size:.72rem;font-weight:600" id="sensexChg">—</span>
+        </div>
+      </div>
+      <!-- Footer: today label -->
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Today's close</span>
       </div>
     </div>
 
-    <!-- Win rate bar -->
-    <div style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-        <span style="font-size:.64rem;font-weight:600;color:var(--neon)" id="statWinLabel">— wins</span>
-        <span style="font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)" id="statWinRate">Win rate</span>
-        <span style="font-size:.64rem;font-weight:600;color:var(--bear)" id="statLossLabel">— losses</span>
-      </div>
-      <div style="height:6px;border-radius:3px;background:var(--bear-dim);border:1px solid var(--bear-border);overflow:hidden">
-        <div id="statWinBar" style="height:100%;border-radius:3px;background:var(--neon);width:0%;transition:width .6s cubic-bezier(.4,0,.2,1)"></div>
-      </div>
-    </div>
-
-    <!-- Hidden elements kept for JS compat -->
-    <span id="statProfit" style="display:none">—</span>
-    <span id="statLoss" style="display:none">—</span>
-    <span id="statProfitSub" style="display:none"></span>
-    <span id="statLossSub" style="display:none"></span>
   </div>
 
   <!-- COLLAPSIBLE: Open Positions -->
@@ -639,7 +685,8 @@ const TIPS={
       <div style="font-size:.72rem;font-weight:700;color:var(--text)">Total P&L</div>
       <div id="tipTotal" style="font-family:var(--mono);font-size:.88rem;font-weight:700">₹—</div>
     </div>`},
-  status:{title:"Experiment Status",body:"A plain-English read on whether Claude is winning or losing vs the ₹10,000 it started with."},
+  status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. The win rate bar shows how many trading days ended in profit vs loss — not portfolio return, just day count."},
+  market:{title:"Market Pulse",body:"Nifty 50 and Sensex show where the broader Indian market closed today. Useful context — if both are deep red and Claude is only slightly down, it's actually outperforming the market."},
   sessions:{title:"Why these times?",body:"These are Aaron's personal trading times — 9:30 AM when the market opens over breakfast, and 1:30 PM for a midday check over lunch. Claude trades at exactly these times every weekday, mimicking Aaron's own pattern but with an AI brain making every decision."}
 };
 let idleTimer=null;
@@ -650,52 +697,83 @@ function startNudge(){
   idleTimer=setTimeout(()=>{
     if(nudgeFired) return;
     nudgeFired=true;
-    // Market Signal — card border flashes, then ? icon glows. Sequential, top to bottom.
-    // Explicitly build the card sequence: 5 kpi-cards + statusCard as 6th
-    const kpiCards=Array.from(document.querySelectorAll(".kpi-card"));
-    const statusCard=document.getElementById("statusCard");
-    const cards=[...kpiCards,...(statusCard?[statusCard]:[])];
-    const step=220; // ms between each card signal
-    cards.forEach((card,i)=>{
-      const btn=card.querySelector(".kpi-help");
+
+    const STEP = 700;   // ms between each nudge — slow, calm, deliberate
+    const GLOW = 1200;  // how long each icon glows
+
+    function nudgeCard(card, btn, delay){
       setTimeout(()=>{
-        // 1. Card border flashes sharp amber — like a price alert
         card.classList.add("signalling");
         setTimeout(()=>card.classList.remove("signalling"),650);
-        // 2. Icon glows softly 80ms after border flash
         if(btn){
           setTimeout(()=>{
             btn.classList.add("nudge");
-            setTimeout(()=>btn.classList.remove("nudge"),900);
-          },80);
+            setTimeout(()=>btn.classList.remove("nudge"),GLOW);
+          },120);
         }
-      },i*step);
-    });
-    // Session help fires after all 6 cards
-    const sessHelp=document.getElementById("help-sessions");
-    if(sessHelp){
-      const sessDelay=cards.length*step+120;
-      setTimeout(()=>{
-        sessHelp.classList.add("nudge");
-        setTimeout(()=>sessHelp.classList.remove("nudge"),900);
-      },sessDelay);
+      }, delay);
     }
-    // Portfolio card + help fire last — entire hero card glows to close the sequence
-    const portHelp=document.getElementById("help-portfolio");
-    const heroCard=document.getElementById("heroCard");
-    if(portHelp&&heroCard){
-      const portDelay=cards.length*step+120+step;
+
+    // Sequence: portfolio → sessions → total P&L → invested → cash → experiment
+    let t = 0;
+
+    // 1. Portfolio hero card
+    const heroCard = document.getElementById("heroCard");
+    const portHelp = document.getElementById("help-portfolio");
+    if(heroCard){
       setTimeout(()=>{
         heroCard.classList.add("signalling");
         setTimeout(()=>heroCard.classList.remove("signalling"),1800);
-        setTimeout(()=>{
-          portHelp.classList.add("nudge");
-          setTimeout(()=>portHelp.classList.remove("nudge"),900);
-        },80);
-      },portDelay);
+        if(portHelp){
+          setTimeout(()=>{
+            portHelp.classList.add("nudge");
+            setTimeout(()=>portHelp.classList.remove("nudge"),GLOW);
+          },120);
+        }
+      }, t);
     }
+    t += STEP;
 
-  },5000);
+    // 2. Sessions help (inline in hero)
+    const sessHelp = document.getElementById("help-sessions");
+    if(sessHelp){
+      setTimeout(()=>{
+        sessHelp.classList.add("nudge");
+        setTimeout(()=>sessHelp.classList.remove("nudge"),GLOW);
+      }, t);
+    }
+    t += STEP;
+
+    // 3. Total P&L card
+    const pnlCard = document.getElementById("help-totalpnl")?.closest(".kpi-card");
+    const pnlBtn  = document.getElementById("help-totalpnl");
+    if(pnlCard) nudgeCard(pnlCard, pnlBtn, t);
+    t += STEP;
+
+    // 4. Invested card
+    const invCard = document.getElementById("help-invested")?.closest(".kpi-card");
+    const invBtn  = document.getElementById("help-invested");
+    if(invCard) nudgeCard(invCard, invBtn, t);
+    t += STEP;
+
+    // 5. Cash card
+    const cashCard = document.getElementById("help-cash")?.closest(".kpi-card");
+    const cashBtn  = document.getElementById("help-cash");
+    if(cashCard) nudgeCard(cashCard, cashBtn, t);
+    t += STEP;
+
+    // 6. Experiment status card
+    const statusCard = document.getElementById("statusCard");
+    const statusBtn  = document.getElementById("help-status");
+    if(statusCard) nudgeCard(statusCard, statusBtn, t);
+    t += STEP;
+
+    // 7. Market pulse card — closes the sequence
+    const marketBtn = document.getElementById("help-market");
+    const marketCard = marketBtn?.closest(".kpi-card");
+    if(marketCard) nudgeCard(marketCard, marketBtn, t);
+
+  }, 6000); // wait 6s before starting — let the page breathe first
 }
 ["touchstart","click","scroll"].forEach(e=>document.addEventListener(e,startNudge,{passive:true}));
 startNudge();
@@ -1060,6 +1138,44 @@ function shareApp(){
   }
 }
 
+// ── MARKET INDICES ────────────────────────────────────────────
+async function fetchIndices(){
+  try{
+    const [n,s]=await Promise.allSettled([
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}}),
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}}),
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}})
+    ]);
+    // Nifty 50 = ^NSEI, Sensex = ^BSESN
+    const niftyRes=await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}});
+    const sensexRes=await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}});
+    const parseIndex=async(res)=>{
+      if(!res.ok) return null;
+      const j=await res.json();
+      const m=j?.chart?.result?.[0]?.meta;
+      if(!m) return null;
+      const cp=m.regularMarketPrice, pc=m.chartPreviousClose||m.previousClose;
+      const chgPct=((cp-pc)/pc*100);
+      return{val:cp,chgPct};
+    };
+    const ni=await parseIndex(niftyRes);
+    const se=await parseIndex(sensexRes);
+    const fmt=(v)=>Number(v).toLocaleString("en-IN",{maximumFractionDigits:0});
+    const fmtChg=(p)=>(p>=0?"+":"")+p.toFixed(2)+"%";
+    const col=(p)=>p>=0?"var(--neon)":"var(--bear)";
+    if(ni){
+      document.getElementById("niftyVal").textContent=fmt(ni.val);
+      const el=document.getElementById("niftyChg");
+      el.textContent=fmtChg(ni.chgPct);el.style.color=col(ni.chgPct);
+    }
+    if(se){
+      document.getElementById("sensexVal").textContent=fmt(se.val);
+      const el=document.getElementById("sensexChg");
+      el.textContent=fmtChg(se.chgPct);el.style.color=col(se.chgPct);
+    }
+  }catch(e){/* silent fail — indices are bonus context not critical */}
+}
+
 async function loadAll(){
   const btn=document.getElementById("refreshBtn");
   if(btn){btn.textContent="Refreshing…";btn.className="refresh-btn loading";btn.disabled=true;}
@@ -1083,6 +1199,7 @@ async function loadAll(){
     renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl);
     renderSession(port.todaySession||{});renderAI(port.insight);
     renderPositions(port.positions||[]);renderTrades(port.recentTrades||[]);
+    fetchIndices(); // non-blocking — updates Nifty/Sensex independently
     if(port.snapshots?.length){
       window._chartData={labels:port.snapshots.map(s=>s.date),values:port.snapshots.map(s=>s.totalValue)};
       document.getElementById("chartMeta").textContent=fPct(port.totalPnlPct)+" total return";
