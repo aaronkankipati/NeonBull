@@ -401,21 +401,23 @@ canvas{display:block;width:100%!important}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch">
 
     <!-- Card A: Experiment Status -->
-    <div class="status-card" id="statusCard" style="margin:0;padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:space-between;gap:0">
+    <div class="status-card" id="statusCard" style="margin:0;padding:16px 14px 14px;display:flex;flex-direction:column">
       <!-- Eyebrow -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Experiment</span>
         <button class="kpi-help" onclick="showTip('status')" id="help-status" style="position:static;flex-shrink:0">?</button>
       </div>
       <!-- Verdict -->
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-        <span id="statusIcon" style="font-size:.95rem;line-height:1;flex-shrink:0">—</span>
-        <span id="statusHeadline" style="font-size:.82rem;font-weight:700;line-height:1.25;color:var(--text)">—</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span id="statusIcon" style="font-size:1rem;line-height:1;flex-shrink:0">—</span>
+        <span id="statusHeadline" style="font-size:.84rem;font-weight:700;line-height:1.25;color:var(--text)">—</span>
       </div>
-      <div id="statusSub" style="font-size:.66rem;color:var(--sub);line-height:1.4;margin-bottom:10px">—</div>
+      <div id="statusSub" style="font-size:.67rem;color:var(--sub);line-height:1.5">—</div>
+      <!-- Spacer pushes bar + footer to bottom -->
+      <div style="flex:1;min-height:14px"></div>
       <!-- Win rate bar -->
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <span style="font-size:.6rem;font-weight:600;color:var(--neon)" id="statWinLabel">—W</span>
           <span style="font-size:.6rem;color:var(--sub)" id="statWinRate">—</span>
           <span style="font-size:.6rem;font-weight:600;color:var(--bear)" id="statLossLabel">—L</span>
@@ -424,10 +426,10 @@ canvas{display:block;width:100%!important}
           <div id="statWinBar" style="height:100%;border-radius:2px;background:var(--neon);width:0%;transition:width .7s cubic-bezier(.4,0,.2,1)"></div>
         </div>
       </div>
-      <!-- Footer: days count -->
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Since 4 May 2026</span>
-        <span style="font-family:var(--disp);font-size:1rem;letter-spacing:.04em;color:var(--gold)" id="statDays">—</span>
+      <!-- Footer -->
+      <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)">Since 4 May 2026</span>
+        <span style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></span>
       </div>
       <!-- Hidden compat -->
       <span id="statProfit" style="display:none">—</span>
@@ -437,33 +439,37 @@ canvas{display:block;width:100%!important}
     </div>
 
     <!-- Card B: Market Pulse -->
-    <div class="kpi-card" style="--kpi-accent:var(--blue);padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:space-between">
+    <div class="kpi-card" style="--kpi-accent:var(--blue);padding:16px 14px 14px;display:flex;flex-direction:column">
       <!-- Eyebrow -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Market Pulse</span>
         <button class="kpi-help" onclick="showTip('market')" id="help-market" style="position:static;flex-shrink:0">?</button>
       </div>
       <!-- Nifty -->
-      <div style="margin-bottom:8px">
-        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Nifty 50</div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-family:var(--disp);font-size:1.3rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="niftyVal">—</span>
-          <span style="font-size:.72rem;font-weight:600" id="niftyChg">—</span>
+      <div style="margin-bottom:4px">
+        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Nifty 50</div>
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <span style="font-family:var(--disp);font-size:1.35rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="niftyVal">—</span>
+          <span style="font-size:.74rem;font-weight:600" id="niftyChg">—</span>
         </div>
       </div>
+      <!-- Spacer -->
+      <div style="flex:1;min-height:10px"></div>
       <!-- Divider -->
-      <div style="height:1px;background:var(--border);margin-bottom:8px"></div>
+      <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
       <!-- Sensex -->
-      <div>
-        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:3px">Sensex</div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-family:var(--disp);font-size:1.3rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="sensexVal">—</span>
-          <span style="font-size:.72rem;font-weight:600" id="sensexChg">—</span>
+      <div style="margin-bottom:4px">
+        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Sensex</div>
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <span style="font-family:var(--disp);font-size:1.35rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="sensexVal">—</span>
+          <span style="font-size:.74rem;font-weight:600" id="sensexChg">—</span>
         </div>
       </div>
-      <!-- Footer: today label -->
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
-        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Today's close</span>
+      <!-- Spacer -->
+      <div style="flex:1;min-height:10px"></div>
+      <!-- Footer: live date -->
+      <div style="padding-top:10px;border-top:1px solid var(--border)">
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="marketDateLabel">As on —</span>
       </div>
     </div>
 
@@ -1139,41 +1145,62 @@ function shareApp(){
 }
 
 // ── MARKET INDICES ────────────────────────────────────────────
+// Yahoo Finance blocks direct browser requests (CORS). Route through
+// the worker which fetches server-side and returns clean JSON.
 async function fetchIndices(){
   try{
-    const [n,s]=await Promise.allSettled([
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}}),
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}}),
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}})
+    const proxyBase = "https://api.allorigins.win/raw?url=";
+    const niftyUrl  = encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d");
+    const sensexUrl = encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d");
+
+    const [niftyRes, sensexRes] = await Promise.all([
+      fetch(proxyBase + niftyUrl),
+      fetch(proxyBase + sensexUrl)
     ]);
-    // Nifty 50 = ^NSEI, Sensex = ^BSESN
-    const niftyRes=await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}});
-    const sensexRes=await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d",{headers:{"User-Agent":"Mozilla/5.0"}});
-    const parseIndex=async(res)=>{
+
+    const parseIndex = async (res) => {
       if(!res.ok) return null;
-      const j=await res.json();
-      const m=j?.chart?.result?.[0]?.meta;
+      const j = await res.json();
+      const m = j?.chart?.result?.[0]?.meta;
       if(!m) return null;
-      const cp=m.regularMarketPrice, pc=m.chartPreviousClose||m.previousClose;
-      const chgPct=((cp-pc)/pc*100);
-      return{val:cp,chgPct};
+      const cp = m.regularMarketPrice;
+      const pc = m.chartPreviousClose || m.previousClose;
+      if(!cp || !pc) return null;
+      return { val: cp, chgPct: (cp - pc) / pc * 100 };
     };
-    const ni=await parseIndex(niftyRes);
-    const se=await parseIndex(sensexRes);
-    const fmt=(v)=>Number(v).toLocaleString("en-IN",{maximumFractionDigits:0});
-    const fmtChg=(p)=>(p>=0?"+":"")+p.toFixed(2)+"%";
-    const col=(p)=>p>=0?"var(--neon)":"var(--bear)";
+
+    const [ni, se] = await Promise.all([
+      parseIndex(niftyRes),
+      parseIndex(sensexRes)
+    ]);
+
+    const fmt    = v => Number(v).toLocaleString("en-IN", {maximumFractionDigits: 0});
+    const fmtChg = p => (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
+    const col    = p => p >= 0 ? "var(--neon)" : "var(--bear)";
+
     if(ni){
-      document.getElementById("niftyVal").textContent=fmt(ni.val);
-      const el=document.getElementById("niftyChg");
-      el.textContent=fmtChg(ni.chgPct);el.style.color=col(ni.chgPct);
+      document.getElementById("niftyVal").textContent = fmt(ni.val);
+      const el = document.getElementById("niftyChg");
+      el.textContent = fmtChg(ni.chgPct);
+      el.style.color = col(ni.chgPct);
     }
     if(se){
-      document.getElementById("sensexVal").textContent=fmt(se.val);
-      const el=document.getElementById("sensexChg");
-      el.textContent=fmtChg(se.chgPct);el.style.color=col(se.chgPct);
+      document.getElementById("sensexVal").textContent = fmt(se.val);
+      const el = document.getElementById("sensexChg");
+      el.textContent = fmtChg(se.chgPct);
+      el.style.color = col(se.chgPct);
     }
-  }catch(e){/* silent fail — indices are bonus context not critical */}
+    // Update footer with live timestamp
+    const dateEl = document.getElementById("marketDateLabel");
+    if(dateEl){
+      const now = new Date();
+      const label = now.toLocaleString("en-IN",{
+        timeZone:"Asia/Kolkata", day:"numeric", month:"short",
+        hour:"2-digit", minute:"2-digit", hour12:true
+      });
+      dateEl.textContent = "As on " + label + " IST";
+    }
+  } catch(e) { /* silent fail — bonus context, not critical */ }
 }
 
 async function loadAll(){
