@@ -18,7 +18,8 @@
 <meta name="twitter:description" content="I gave Claude AI ₹10,000 and zero human override. It trades NSE every day at breakfast and lunch. Watch it live."/>
 <meta name="twitter:image" content="https://aaronkankipati.github.io/NeonBull/og-image.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -39,10 +40,10 @@
   --bear-border:#ff3d5a30;
   --blue:#4d9fff;
   --text:#e8eef8;
-  --sub:#5a6a85;
+  --sub:#6b7d9e;
   --muted:#2a3550;
-  --disp:'Bebas Neue',cursive;
-  --body:'Syne',sans-serif;
+  --disp:'Barlow Condensed',sans-serif;
+  --body:'Inter',sans-serif;
   --mono:'JetBrains Mono',monospace;
   --r:14px;
 }
@@ -50,7 +51,8 @@ html{font-size:15px;-webkit-tap-highlight-color:transparent}
 body{
   background:var(--bg);color:var(--text);font-family:var(--body);
   min-height:100vh;max-width:540px;margin:0 auto;padding-bottom:60px;
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-feature-settings:'kern' 1,'liga' 1;
 }
 
 /* ── LOADER ── */
@@ -58,16 +60,16 @@ body{
 .ld-bar{width:160px;height:2px;background:var(--border2);border-radius:2px;overflow:hidden}
 .ld-fill{height:100%;width:0;background:linear-gradient(90deg,var(--neon),var(--gold));animation:ldfill 1.6s cubic-bezier(.4,0,.2,1) forwards}
 @keyframes ldfill{to{width:100%}}
-.ld-sub{font-size:.7rem;letter-spacing:.14em;color:var(--sub);text-transform:uppercase}
+.ld-sub{font-size:.72rem;font-weight:500;letter-spacing:.1em;color:var(--sub);text-transform:uppercase}
 
 /* ── TOPBAR ── */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}
-.live{display:flex;align-items:center;gap:6px;font-size:.68rem;letter-spacing:.12em;color:var(--sub);text-transform:uppercase}
+.live{display:flex;align-items:center;gap:6px;font-size:.68rem;font-weight:600;letter-spacing:.1em;color:var(--sub);text-transform:uppercase}
 .live-dot{width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 1.8s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.refresh-btn{background:transparent;border:1px solid var(--border2);color:var(--blue);font-family:var(--body);font-size:.7rem;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;letter-spacing:.06em;transition:all .2s}
+.refresh-btn{background:transparent;border:1px solid var(--border2);color:var(--blue);font-family:var(--body);font-size:.72rem;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;letter-spacing:.02em;transition:all .2s}
 .refresh-btn:hover{border-color:var(--blue);background:#4d9fff12}
-.share-btn{background:transparent;border:1px solid var(--neon-border);color:var(--neon);font-family:var(--body);font-size:.7rem;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;letter-spacing:.06em;transition:all .2s;display:flex;align-items:center;gap:5px}
+.share-btn{background:transparent;border:1px solid var(--neon-border);color:var(--neon);font-family:var(--body);font-size:.72rem;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;letter-spacing:.02em;transition:all .2s;display:flex;align-items:center;gap:5px}
 .share-btn:hover{background:var(--neon-dim)}
 .share-btn.copied{color:var(--gold);border-color:var(--gold-border)}
 
@@ -79,29 +81,29 @@ body{
 .closed-strip{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.15)}
 .closed-strip-left{display:flex;align-items:center;gap:8px}
 .closed-strip-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
-.closed-strip-msg{font-size:.76rem;color:var(--text);font-weight:500}
-.closed-strip-next{font-size:.72rem;color:var(--gold);white-space:nowrap;font-weight:500}
+.closed-strip-msg{font-size:.78rem;font-weight:500;color:var(--text)}
+.closed-strip-next{font-size:.74rem;font-weight:600;color:var(--gold);white-space:nowrap}
 /* Paused strip */
 .banner-paused{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(255,61,90,0.06);border:1px solid rgba(255,61,90,0.15)}
 .banner-paused-dot{width:6px;height:6px;border-radius:50%;background:var(--bear);flex-shrink:0}
-.banner-paused-msg{font-size:.76rem;color:var(--text);font-weight:500}
+.banner-paused-msg{font-size:.78rem;font-weight:500;color:var(--text)}
 
 /* ── HERO ── */
 .hero{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px 20px 24px;text-align:center;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--hero-accent,var(--border2));transition:background .4s}
 .hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--hero-glow,transparent),transparent);pointer-events:none}
-.hero-eyebrow{font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
-.hero-value{font-family:var(--disp);font-size:3.6rem;letter-spacing:.04em;line-height:1;margin-bottom:12px;position:relative;z-index:1}
-.hero-pill{display:inline-flex;align-items:center;font-size:.82rem;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:10px}
+.hero-eyebrow{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+.hero-value{font-family:var(--disp);font-size:3.6rem;font-weight:700;letter-spacing:.02em;line-height:1;margin-bottom:12px;position:relative;z-index:1}
+.hero-pill{display:inline-flex;align-items:center;font-size:.82rem;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:10px;letter-spacing:.01em}
 .hero-pill.up{background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)}
 .hero-pill.dn{background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)}
-.hero-start{font-size:.7rem;color:var(--sub)}
+.hero-start{font-size:.72rem;font-weight:400;color:var(--sub)}
 
 /* ── KPI GRID 3×2 ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px 13px;position:relative;overflow:hidden;transition:border-color .2s}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--kpi-accent,var(--border2));border-radius:var(--r) var(--r) 0 0}
-.kpi-help{position:absolute;top:8px;right:8px;width:17px;height:17px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--sub);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .3s,color .3s,box-shadow .3s,transform .3s;font-family:var(--body)}
+.kpi-help{position:absolute;top:8px;right:8px;width:17px;height:17px;border-radius:50%;background:transparent;border:1px solid var(--border2);color:var(--sub);font-size:.64rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .3s,color .3s,box-shadow .3s,transform .3s;font-family:var(--body)}
 .kpi-help:hover{border-color:rgba(245,166,35,0.5);color:var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,0.08),0 0 12px rgba(245,166,35,0.15);transform:scale(1.08)}
 /* Premium nudge — scales up softly, ring expands and dissolves, text brightens, all eased */
 @keyframes nudge-breathe{
@@ -127,19 +129,19 @@ body{
   100%{border-color:var(--border);box-shadow:none}
 }
 .hero.signalling{animation:hero-breathe 2200ms cubic-bezier(0.4,0,0.2,1) forwards}
-.kpi-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
-.kpi-value{font-family:var(--disp);font-size:1.5rem;letter-spacing:.04em;line-height:1;margin-bottom:4px}
-.kpi-sub{font-size:.66rem;color:var(--sub);line-height:1.4}
+.kpi-label{font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
+.kpi-value{font-family:var(--disp);font-size:1.5rem;font-weight:700;letter-spacing:.02em;line-height:1;margin-bottom:4px}
+.kpi-sub{font-size:.72rem;font-weight:400;color:var(--sub);line-height:1.4}
 .bull{color:var(--neon)}.bear{color:var(--bear)}.gold{color:var(--gold)}.blue{color:var(--blue)}
 
 /* ── STATUS CARD ── */
 .status-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;position:relative;transition:border-color .2s}
 .status-card.signalling{animation:card-signal 1400ms cubic-bezier(0.4,0,0.2,1) forwards}
 .status-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--status-accent,var(--border2));border-radius:var(--r) var(--r) 0 0}
-.status-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
+.status-label{font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
 .status-icon{font-size:1.2rem;line-height:1;margin-bottom:4px}
-.status-headline{font-size:.88rem;font-weight:700;line-height:1.3;margin-bottom:3px}
-.status-sub{font-size:.66rem;color:var(--sub)}
+.status-headline{font-size:.9rem;font-weight:700;line-height:1.3;margin-bottom:3px}
+.status-sub{font-size:.72rem;font-weight:400;color:var(--sub);line-height:1.5}
 
 /* ── STAT ROW ── (kept for any future use) */
 
@@ -149,8 +151,8 @@ body{
 .tooltip-box{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--r) var(--r) 0 0;padding:24px 20px 36px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 .tooltip-overlay.show .tooltip-box{transform:translateY(0)}
 .tooltip-close{float:right;background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;line-height:1;margin-top:-2px}
-.tooltip-title{font-family:var(--disp);font-size:1.4rem;letter-spacing:.06em;margin-bottom:12px}
-.tooltip-body{font-size:.86rem;color:var(--sub);line-height:1.85}
+.tooltip-title{font-family:var(--disp);font-size:1.5rem;font-weight:700;letter-spacing:.03em;margin-bottom:12px}
+.tooltip-body{font-size:.88rem;font-weight:400;color:var(--sub);line-height:1.75}
 
 /* ── COLLAPSIBLE ── */
 .collapse-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
@@ -158,8 +160,8 @@ body{
 .collapse-trigger:active{background:var(--card2)}
 .collapse-left{display:flex;align-items:center;gap:10px}
 .collapse-icon{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}
-.collapse-title{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text);font-weight:700}
-.collapse-meta{font-size:.68rem;color:var(--sub);margin-top:2px}
+.collapse-title{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text)}
+.collapse-meta{font-size:.72rem;font-weight:400;color:var(--sub);margin-top:2px;letter-spacing:0}
 .collapse-chevron{width:20px;height:20px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;transition:transform .3s cubic-bezier(.4,0,.2,1);flex-shrink:0}
 .collapse-chevron svg{width:10px;height:10px;fill:none;stroke:var(--sub);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .collapse-section.open .collapse-chevron{transform:rotate(180deg)}
@@ -172,7 +174,7 @@ body{
 .scroll-panel::-webkit-scrollbar-track{background:transparent}
 .scroll-panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 /* Scroll hint text */
-.scroll-hint{display:none;align-items:center;justify-content:center;gap:5px;padding:7px 0;border-top:1px solid var(--border);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);background:var(--card)}
+.scroll-hint{display:none;align-items:center;justify-content:center;gap:5px;padding:7px 0;border-top:1px solid var(--border);font-size:.68rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);background:var(--card)}
 .scroll-hint svg{opacity:.5}
 
 /* ── CHART ── */
@@ -181,21 +183,21 @@ canvas{display:block;width:100%!important}
 
 /* ── AI CARD ── */
 .ai-body{padding:16px}
-.ai-confidence{display:inline-block;font-size:.62rem;font-weight:600;letter-spacing:.08em;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+.ai-confidence{display:inline-block;font-size:.64rem;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:20px;margin-bottom:12px}
 .conf-high{background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)}
 .conf-med{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
 .conf-low{background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)}
-.ai-outlook{font-size:.9rem;font-weight:600;line-height:1.5;margin-bottom:10px}
-.ai-analysis{font-size:.78rem;color:var(--sub);line-height:1.75;margin-bottom:12px}
-.ai-risk{font-size:.76rem;color:var(--bear);background:var(--bear-dim);border:1px solid var(--bear-border);border-radius:10px;padding:10px 12px;line-height:1.6;margin-bottom:8px}
-.ai-exp{font-size:.76rem;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:10px;padding:10px 12px;line-height:1.6;font-style:italic}
+.ai-outlook{font-size:.92rem;font-weight:600;line-height:1.5;margin-bottom:10px;letter-spacing:-.01em}
+.ai-analysis{font-size:.82rem;font-weight:400;color:var(--sub);line-height:1.75;margin-bottom:12px}
+.ai-risk{font-size:.8rem;font-weight:400;color:var(--bear);background:var(--bear-dim);border:1px solid var(--bear-border);border-radius:10px;padding:10px 12px;line-height:1.65;margin-bottom:8px}
+.ai-exp{font-size:.8rem;font-weight:400;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:10px;padding:10px 12px;line-height:1.65;font-style:italic}
 
 /* ── SESSION ── */
 .sess-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .3s}
 .sess-done{background:var(--neon);box-shadow:0 0 7px var(--neon)}
 .sess-next{background:var(--gold);box-shadow:0 0 6px var(--gold);animation:blink 1.4s infinite}
 .sess-pend{background:var(--muted);border:1px solid var(--border2)}
-.mkt-pill{font-size:.6rem;font-weight:600;padding:2px 10px;border-radius:20px;letter-spacing:.06em}
+.mkt-pill{font-size:.62rem;font-weight:600;padding:2px 10px;border-radius:20px;letter-spacing:.04em}
 .mkt-open{background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)}
 .mkt-closed{background:var(--muted);color:var(--sub);border:1px solid var(--border2)}
 
@@ -203,47 +205,47 @@ canvas{display:block;width:100%!important}
 .pos-item{padding:14px 16px;border-bottom:1px solid var(--border)}
 .pos-item:last-child{border-bottom:none}
 .pos-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
-.pos-label{font-family:var(--disp);font-size:1rem;letter-spacing:.08em;color:var(--blue)}
-.pos-pnl{font-family:var(--disp);font-size:1rem}
-.pos-row{display:flex;justify-content:space-between;font-size:.74rem;color:var(--sub);margin-top:3px}
-.pos-sl{font-size:.68rem;color:var(--bear);margin-top:5px}
+.pos-label{font-family:var(--disp);font-size:1rem;font-weight:700;letter-spacing:.04em;color:var(--blue)}
+.pos-pnl{font-family:var(--disp);font-size:1rem;font-weight:700}
+.pos-row{display:flex;justify-content:space-between;font-size:.76rem;font-weight:400;color:var(--sub);margin-top:3px;line-height:1.5}
+.pos-sl{font-size:.7rem;font-weight:500;color:var(--bear);margin-top:5px}
 
 /* ── TRADES ── */
 .trade-item{padding:12px 16px;border-bottom:1px solid var(--border)}
 .trade-item:last-child{border-bottom:none}
 .trade-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.trade-action{font-family:var(--disp);font-size:.9rem;letter-spacing:.06em}
+.trade-action{font-family:var(--disp);font-size:.95rem;font-weight:700;letter-spacing:.04em}
 .trade-buy{color:var(--neon)}.trade-sell{color:var(--bear)}.trade-stop{color:var(--bear)}
-.trade-amount{font-size:.8rem;color:var(--text)}
-.trade-meta{font-size:.68rem;color:var(--sub);line-height:1.5}
-.trade-label{display:inline-block;font-size:.6rem;padding:1px 7px;border-radius:10px;margin-right:5px}
+.trade-amount{font-size:.8rem;font-weight:400;color:var(--text)}
+.trade-meta{font-size:.7rem;font-weight:400;color:var(--sub);line-height:1.5}
+.trade-label{display:inline-block;font-size:.62rem;font-weight:600;padding:1px 7px;border-radius:10px;margin-right:5px;letter-spacing:.03em}
 .sess-m{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
 .sess-a{background:#4d9fff18;color:var(--blue);border:1px solid #4d9fff30}
 
 
 /* ── AUTHOR ── */
 .pin-form{padding:20px 16px;display:flex;flex-direction:column;gap:12px;align-items:center}
-.pin-label{font-size:.76rem;color:var(--sub);text-align:center;line-height:1.6;max-width:280px}
-.pin-input{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--disp);font-size:2rem;letter-spacing:.4em;text-align:center;width:160px;padding:12px 8px;border-radius:10px;outline:none;-webkit-text-security:disc;transition:border-color .2s}
+.pin-label{font-size:.78rem;font-weight:400;color:var(--sub);text-align:center;line-height:1.65;max-width:280px}
+.pin-input{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--disp);font-size:2rem;font-weight:700;letter-spacing:.4em;text-align:center;width:160px;padding:12px 8px;border-radius:10px;outline:none;-webkit-text-security:disc;transition:border-color .2s}
 .pin-input:focus{border-color:var(--gold)}
-.pin-btn{background:var(--gold);color:#000;font-family:var(--body);font-weight:700;font-size:.8rem;border:none;padding:10px 28px;border-radius:20px;cursor:pointer}
-.pin-error{font-size:.74rem;color:var(--bear);display:none}
+.pin-btn{background:var(--gold);color:#000;font-family:var(--body);font-weight:700;font-size:.8rem;letter-spacing:.02em;border:none;padding:10px 28px;border-radius:20px;cursor:pointer}
+.pin-error{font-size:.74rem;font-weight:500;color:var(--bear);display:none}
 .author-trades{display:none}
 .auth-trade-item{padding:12px 16px;border-bottom:1px solid var(--border)}
 .auth-trade-item:last-child{border-bottom:none}
 .auth-trade-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.auth-sym{font-family:var(--disp);font-size:1rem;letter-spacing:.06em;color:var(--gold)}
-.auth-meta{font-size:.7rem;color:var(--sub);line-height:1.5}
+.auth-sym{font-family:var(--disp);font-size:1rem;font-weight:700;letter-spacing:.04em;color:var(--gold)}
+.auth-meta{font-size:.72rem;font-weight:400;color:var(--sub);line-height:1.55}
 
 /* ── DISCLAIMER ── */
-.disclaimer{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;font-size:.72rem;color:var(--sub);line-height:1.85}
-.disclaimer strong{color:var(--text)}
+.disclaimer{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;font-size:.76rem;font-weight:400;color:var(--sub);line-height:1.8}
+.disclaimer strong{color:var(--text);font-weight:600}
 .disclaimer em{color:var(--muted);font-style:italic}
 
 /* ── EMPTY / SETUP ── */
-.empty{padding:28px 16px;text-align:center;color:var(--sub);font-size:.78rem;line-height:2}
+.empty{padding:28px 16px;text-align:center;color:var(--sub);font-size:.8rem;font-weight:400;line-height:2}
 .empty-icon{font-size:1.6rem;display:block;margin-bottom:8px}
-.setup{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:var(--r);padding:14px;font-size:.78rem;color:var(--gold);display:none}
+.setup{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:var(--r);padding:14px;font-size:.78rem;font-weight:500;color:var(--gold);display:none}
 @keyframes refresh-flash{0%{opacity:1}30%{opacity:.4}60%{opacity:1}100%{opacity:1}}
 .refreshing{animation:refresh-flash .5s ease-in-out}
 .refresh-btn.loading{color:var(--sub);border-color:var(--border);cursor:default}
@@ -309,7 +311,7 @@ canvas{display:block;width:100%!important}
       </button>
       <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">Refresh</button>
     </div>
-    <div id="lastUpdated" style="font-size:.58rem;color:var(--muted);letter-spacing:.04em;text-align:right">—</div>
+    <div id="lastUpdated" style="font-size:.64rem;font-weight:400;color:var(--muted);letter-spacing:.02em;text-align:right">—</div>
   </div>
 </div>
 
@@ -342,15 +344,15 @@ canvas{display:block;width:100%!important}
     <div class="hero-sessions" id="heroSessions" style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);position:relative">
       <div style="display:flex;align-items:center;gap:5px">
         <div class="sess-dot sess-pend" id="dotM"></div>
-        <span style="font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)" id="sessM">9:30 AM</span>
+        <span style="font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sub)" id="sessM">9:30 AM</span>
       </div>
       <div style="width:1px;height:10px;background:var(--border2)"></div>
       <div style="display:flex;align-items:center;gap:5px">
         <div class="sess-dot sess-pend" id="dotA"></div>
-        <span style="font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)" id="sessA">2:30 PM</span>
+        <span style="font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sub)" id="sessA">2:30 PM</span>
       </div>
       <div style="width:1px;height:10px;background:var(--border2)"></div>
-      <div class="mkt-pill" id="sessMarket" style="font-size:.6rem;padding:2px 9px">—</div>
+      <div class="mkt-pill" id="sessMarket" style="font-size:.64rem;padding:2px 9px">—</div>
       <button class="kpi-help" id="help-sessions" onclick="showTip('sessions')" style="position:absolute;right:-2px;top:50%;transform:translateY(-50%)">?</button>
     </div>
   </div>
@@ -384,23 +386,23 @@ canvas{display:block;width:100%!important}
     <div class="status-card" id="statusCard" style="margin:0;padding:16px 14px 14px;display:flex;flex-direction:column">
       <!-- Eyebrow -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Experiment</span>
+        <span style="font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Experiment</span>
         <button class="kpi-help" onclick="showTip('status')" id="help-status" style="position:static;flex-shrink:0">?</button>
       </div>
       <!-- Verdict -->
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
         <span id="statusIcon" style="font-size:1rem;line-height:1;flex-shrink:0">—</span>
-        <span id="statusHeadline" style="font-size:.84rem;font-weight:700;line-height:1.25;color:var(--text)">—</span>
+        <span id="statusHeadline" style="font-size:.9rem;font-weight:700;line-height:1.25;letter-spacing:-.01em;color:var(--text)">—</span>
       </div>
-      <div id="statusSub" style="font-size:.67rem;color:var(--sub);line-height:1.5">—</div>
+      <div id="statusSub" style="font-size:.72rem;font-weight:400;color:var(--sub);line-height:1.5">—</div>
       <!-- Spacer pushes bar + footer to bottom -->
-      <div style="flex:1;min-height:14px"></div>
+      <div style="flex:1;min-height:6px"></div>
       <!-- Win rate bar -->
       <div style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:.6rem;font-weight:600;color:var(--neon)" id="statWinLabel">—W</span>
-          <span style="font-size:.6rem;color:var(--sub)" id="statWinRate">—</span>
-          <span style="font-size:.6rem;font-weight:600;color:var(--bear)" id="statLossLabel">—L</span>
+          <span style="font-size:.64rem;font-weight:600;color:var(--neon)" id="statWinLabel">—W</span>
+          <span style="font-size:.64rem;font-weight:400;color:var(--sub)" id="statWinRate">—</span>
+          <span style="font-size:.64rem;font-weight:600;color:var(--bear)" id="statLossLabel">—L</span>
         </div>
         <div style="height:4px;border-radius:2px;background:var(--bear-dim);border:1px solid var(--bear-border);overflow:hidden">
           <div id="statWinBar" style="height:100%;border-radius:2px;background:var(--neon);width:0%;transition:width .7s cubic-bezier(.4,0,.2,1)"></div>
@@ -408,8 +410,8 @@ canvas{display:block;width:100%!important}
       </div>
       <!-- Footer -->
       <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)">Since 4 May 2026</span>
-        <span style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></span>
+        <span style="font-size:.64rem;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--sub)">Since 4 May 2026</span>
+        <span style="font-size:.64rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;font-weight:700;letter-spacing:.02em;vertical-align:middle" id="statDays">—</span></span>
       </div>
       <!-- Hidden compat -->
       <span id="statProfit" style="display:none">—</span>
@@ -422,34 +424,34 @@ canvas{display:block;width:100%!important}
     <div class="kpi-card" style="--kpi-accent:var(--blue);padding:16px 14px 14px;display:flex;flex-direction:column">
       <!-- Eyebrow -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <span style="font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Market Pulse</span>
+        <span style="font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">Market Pulse</span>
         <button class="kpi-help" onclick="showTip('market')" id="help-market" style="position:static;flex-shrink:0">?</button>
       </div>
       <!-- Nifty -->
       <div style="margin-bottom:4px">
-        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Nifty 50</div>
+        <div style="font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Nifty 50</div>
         <div style="display:flex;align-items:baseline;gap:7px">
-          <span style="font-family:var(--disp);font-size:1.35rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="niftyVal">—</span>
-          <span style="font-size:.74rem;font-weight:600" id="niftyChg">—</span>
+          <span style="font-family:var(--disp);font-size:1.35rem;font-weight:700;letter-spacing:.02em;line-height:1" id="niftyVal">—</span>
+          <span style="font-size:.78rem;font-weight:600" id="niftyChg">—</span>
         </div>
       </div>
       <!-- Spacer -->
-      <div style="flex:1;min-height:10px"></div>
+      <div style="flex:1;min-height:4px"></div>
       <!-- Divider -->
-      <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
+      <div style="height:1px;background:var(--border);margin-bottom:8px"></div>
       <!-- Sensex -->
       <div style="margin-bottom:4px">
-        <div style="font-size:.54rem;letter-spacing:.11em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Sensex</div>
+        <div style="font-size:.64rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:5px">Sensex</div>
         <div style="display:flex;align-items:baseline;gap:7px">
-          <span style="font-family:var(--disp);font-size:1.35rem;letter-spacing:.04em;line-height:1;color:var(--text)" id="sensexVal">—</span>
-          <span style="font-size:.74rem;font-weight:600" id="sensexChg">—</span>
+          <span style="font-family:var(--disp);font-size:1.35rem;font-weight:700;letter-spacing:.02em;line-height:1" id="sensexVal">—</span>
+          <span style="font-size:.78rem;font-weight:600" id="sensexChg">—</span>
         </div>
       </div>
       <!-- Spacer -->
-      <div style="flex:1;min-height:10px"></div>
+      <div style="flex:1;min-height:4px"></div>
       <!-- Footer: live date -->
       <div style="padding-top:10px;border-top:1px solid var(--border)">
-        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="marketDateLabel">As on —</span>
+        <span style="font-size:.64rem;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--sub)" id="marketDateLabel">As on —</span>
       </div>
     </div>
 
@@ -547,7 +549,7 @@ canvas{display:block;width:100%!important}
           <canvas id="chart" height="160"></canvas></div>
           <div id="chartEmpty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-            <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
+            <div style="font-size:.76rem;font-weight:400;color:var(--sub);text-align:center;line-height:1.65">Building history as the experiment runs.<br><span style="font-size:.7rem;color:var(--muted)">More data points appear each trading day.</span></div>
           </div>
         </div>
       </div>
@@ -595,26 +597,26 @@ canvas{display:block;width:100%!important}
     </div>
     <div class="collapse-body">
       <div class="collapse-inner" style="padding:24px 20px;display:flex;flex-direction:column;gap:12px">
-        <p style="font-size:.82rem;color:var(--sub);line-height:1.7">
+        <p style="font-size:.84rem;font-weight:400;color:var(--sub);line-height:1.7">
           Curious about the experiment, want to collaborate, or just want to say hi? Aaron builds at the intersection of AI and products.
         </p>
         <a href="https://in.linkedin.com/in/aaronkankipati" target="_blank" rel="noopener"
           style="display:flex;align-items:center;gap:12px;background:rgba(0,119,181,0.08);border:1px solid rgba(0,119,181,0.2);border-radius:12px;padding:14px 16px;text-decoration:none;transition:all .2s">
           <span style="display:flex;align-items:center;color:rgba(255,255,255,0.6)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></span>
           <div>
-            <div style="font-size:.84rem;font-weight:700;color:#fff;margin-bottom:2px">LinkedIn</div>
-            <div style="font-size:.72rem;color:var(--sub)">Aaron Kankipati · Connect or follow</div>
+            <div style="font-size:.86rem;font-weight:700;color:#fff;margin-bottom:2px;letter-spacing:-.01em">LinkedIn</div>
+            <div style="font-size:.74rem;font-weight:400;color:var(--sub)">Aaron Kankipati · Connect or follow</div>
           </div>
-          <span style="margin-left:auto;font-size:.7rem;color:var(--sub)">↗</span>
+          <span style="margin-left:auto;font-size:.72rem;color:var(--sub)">↗</span>
         </a>
         <a href="https://aaronkankipati.github.io/Aaron-Kankipati/" target="_blank" rel="noopener"
           style="display:flex;align-items:center;gap:12px;background:var(--neon-dim);border:1px solid var(--neon-border);border-radius:12px;padding:14px 16px;text-decoration:none;transition:all .2s">
           <span style="display:flex;align-items:center;color:var(--neon)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
           <div>
-            <div style="font-size:.84rem;font-weight:700;color:#fff;margin-bottom:2px">AI Product Portfolio</div>
-            <div style="font-size:.72rem;color:var(--sub)">See everything Aaron has built</div>
+            <div style="font-size:.86rem;font-weight:700;color:#fff;margin-bottom:2px;letter-spacing:-.01em">AI Product Portfolio</div>
+            <div style="font-size:.74rem;font-weight:400;color:var(--sub)">See everything Aaron has built</div>
           </div>
-          <span style="margin-left:auto;font-size:.7rem;color:var(--sub)">↗</span>
+          <span style="margin-left:auto;font-size:.72rem;color:var(--sub)">↗</span>
         </a>
       </div>
     </div>
@@ -643,33 +645,33 @@ const TIPS={
   cash:{title:"Cash Available",body:"The money Claude has not invested yet. This is the dry powder available for the next trade. When Claude buys a stock, this number goes down. When it sells, this number goes back up."},
   invested:{title:"Invested",body:"The total current market value of all open stock positions. This changes as stock prices move — if Claude's stocks go up, this number grows too."},
   totalpnl:{title:"Total P&L",html:true,body:`
-    <div style="font-size:.82rem;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started. Tap any row to learn more.</div>
+    <div style="font-size:.84rem;font-weight:400;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started. Tap any row to learn more.</div>
     <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Realised P&L</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Locked-in result from closed trades.<br>Sell fees already deducted inside this number.</div>
+          <div style="font-size:.76rem;font-weight:600;color:var(--text)">Realised P&L</div>
+          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Locked-in result from closed trades.<br>Sell fees already deducted inside this number.</div>
         </div>
-        <div id="tipRealised" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
+        <div id="tipRealised" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Unrealised P&L</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Paper gain/loss on open positions right now.<br>Becomes real when Claude sells.</div>
+          <div style="font-size:.76rem;font-weight:600;color:var(--text)">Unrealised P&L</div>
+          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Paper gain/loss on open positions right now.<br>Becomes real when Claude sells.</div>
         </div>
-        <div id="tipUnrealised" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
+        <div id="tipUnrealised" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card)">
         <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Buy fees (open positions)</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Buy-side charges embedded in avg price.<br>Will surface in Realised P&L when positions close.</div>
+          <div style="font-size:.76rem;font-weight:600;color:var(--text)">Buy fees (open positions)</div>
+          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Buy-side charges embedded in avg price.<br>Will surface in Realised P&L when positions close.</div>
         </div>
-        <div id="tipFees" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
+        <div id="tipFees" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--card2);border:1px solid var(--border2);border-radius:10px">
-      <div style="font-size:.72rem;font-weight:700;color:var(--text)">Total P&L</div>
-      <div id="tipTotal" style="font-family:var(--mono);font-size:.88rem;font-weight:700">₹—</div>
+      <div style="font-size:.76rem;font-weight:600;color:var(--text)">Total P&L</div>
+      <div id="tipTotal" style="font-family:var(--mono);font-size:.9rem;font-weight:700">₹—</div>
     </div>`},
   status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. The win rate bar shows how many trading days ended in profit vs loss — not portfolio return, just day count."},
   market:{title:"Market Pulse",body:"Nifty 50 and Sensex show where the broader Indian market closed today. Useful context — if both are deep red and Claude is only slightly down, it's actually outperforming the market."},
@@ -976,7 +978,7 @@ function renderPositions(positions){
         <div class="pos-pnl">${gainLine}</div>
       </div>
       <div class="pos-row">
-        <span>Bought at ${fINR(p.avgPrice)} <span style="font-size:.6rem;color:var(--muted)">(incl. fees)</span></span>
+        <span>Bought at ${fINR(p.avgPrice)} <span style="font-size:.64rem;font-weight:400;color:var(--muted)">(incl. fees)</span></span>
         <span>Now ${fINR(p.currentPrice)}</span>
       </div>
       <div class="pos-sl">Auto-sells below ${fINR(p.stopLossLevel)}</div>
@@ -1050,11 +1052,12 @@ function renderTrades(trades){
         <div style="display:flex;align-items:center;gap:8px">
           <span class="trade-action ${actCls}">${actTxt}</span>
           <span class="trade-label ${sc}">${session}</span>
-          <span style="font-size:.66rem;color:var(--sub)">${t.symbol||""}</span>
+          <span style="font-size:.7rem;font-weight:400;color:var(--sub)">${t.symbol||""}</span>
         </div>
+        <span style="font-size:.66rem;font-weight:400;color:var(--muted);font-family:var(--mono);flex-shrink:0;letter-spacing:.01em">${t.date||""}</span>
       </div>
-      <div style="font-size:.78rem;color:var(--sub);margin:3px 0">${amtLine}</div>
-      <div style="font-size:.78rem;color:var(--text);margin-top:2px">${reason}</div>
+      <div style="font-size:.8rem;font-weight:400;color:var(--sub);margin:3px 0">${amtLine}</div>
+      <div style="font-size:.8rem;font-weight:400;color:var(--text);margin-top:2px;line-height:1.5">${reason}</div>
     </div>`;
   }).join("");
 }
@@ -1090,7 +1093,7 @@ function renderAuthorTrades(trades){
           <span class="auth-sym">${t.symbol?.replace(".NS","")}</span>
           <span class="trade-label ${sc}">${sl}</span>
         </div>
-        <span style="font-size:.82rem">${fINR(t.total)}</span>
+        <span style="font-size:.84rem;font-weight:500">${fINR(t.total)}</span>
       </div>
       <div class="auth-meta">${t.date||"—"} · ${t.qty} shares @ ${fINR(t.price)} · Fees ₹${t.charges||0} · Net ₹${t.netProceeds||t.total} · ${t.reason||"—"}</div>
     </div>`;
@@ -1134,12 +1137,14 @@ async function fetchIndices(){
 
     if(nifty){
       document.getElementById("niftyVal").textContent = fmt(nifty.price);
+      document.getElementById("niftyVal").style.color = col(nifty.changePct);
       const el = document.getElementById("niftyChg");
       el.textContent = fmtChg(nifty.changePct);
       el.style.color = col(nifty.changePct);
     }
     if(sensex){
       document.getElementById("sensexVal").textContent = fmt(sensex.price);
+      document.getElementById("sensexVal").style.color = col(sensex.changePct);
       const el = document.getElementById("sensexChg");
       el.textContent = fmtChg(sensex.changePct);
       el.style.color = col(sensex.changePct);
