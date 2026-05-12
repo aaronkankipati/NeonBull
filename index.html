@@ -127,26 +127,21 @@ body{
   100%{border-color:var(--border);box-shadow:none}
 }
 .hero.signalling{animation:hero-breathe 2200ms cubic-bezier(0.4,0,0.2,1) forwards}
-@keyframes icon-glow{0%,100%{border-color:var(--border2);color:var(--sub);box-shadow:none}40%,60%{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(245,166,35,0.35)}}
 .kpi-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
 .kpi-value{font-family:var(--disp);font-size:1.5rem;letter-spacing:.04em;line-height:1;margin-bottom:4px}
 .kpi-sub{font-size:.66rem;color:var(--sub);line-height:1.4}
 .bull{color:var(--neon)}.bear{color:var(--bear)}.gold{color:var(--gold)}.blue{color:var(--blue)}
 
 /* ── STATUS CARD ── */
-.status-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;position:relative;overflow:hidden;transition:border-color .2s}
-.status-card.signalling{animation:card-signal 600ms ease-out forwards}
-.status-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--status-accent,var(--border2))}
+.status-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px;position:relative;transition:border-color .2s}
+.status-card.signalling{animation:card-signal 1400ms cubic-bezier(0.4,0,0.2,1) forwards}
+.status-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--status-accent,var(--border2));border-radius:var(--r) var(--r) 0 0}
 .status-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;padding-right:20px}
 .status-icon{font-size:1.2rem;line-height:1;margin-bottom:4px}
 .status-headline{font-size:.88rem;font-weight:700;line-height:1.3;margin-bottom:3px}
 .status-sub{font-size:.66rem;color:var(--sub)}
 
-/* ── STAT ROW ── */
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 10px;text-align:center}
-.stat-val{font-family:var(--disp);font-size:1.5rem;letter-spacing:.04em;line-height:1;margin-bottom:3px}
-.stat-label{font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+/* ── STAT ROW ── (kept for any future use) */
 
 /* ── TOOLTIP ── */
 .tooltip-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -196,14 +191,10 @@ canvas{display:block;width:100%!important}
 .ai-exp{font-size:.76rem;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:10px;padding:10px 12px;line-height:1.6;font-style:italic}
 
 /* ── SESSION ── */
-.session-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.session-row{display:flex;align-items:center;gap:10px}
 .sess-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .3s}
 .sess-done{background:var(--neon);box-shadow:0 0 7px var(--neon)}
 .sess-next{background:var(--gold);box-shadow:0 0 6px var(--gold);animation:blink 1.4s infinite}
 .sess-pend{background:var(--muted);border:1px solid var(--border2)}
-.sess-text{flex:1;font-size:.82rem}
-.sess-time{font-size:.68rem;color:var(--sub)}
 .mkt-pill{font-size:.6rem;font-weight:600;padding:2px 10px;border-radius:20px;letter-spacing:.06em}
 .mkt-open{background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)}
 .mkt-closed{background:var(--muted);color:var(--sub);border:1px solid var(--border2)}
@@ -215,7 +206,6 @@ canvas{display:block;width:100%!important}
 .pos-label{font-family:var(--disp);font-size:1rem;letter-spacing:.08em;color:var(--blue)}
 .pos-pnl{font-family:var(--disp);font-size:1rem}
 .pos-row{display:flex;justify-content:space-between;font-size:.74rem;color:var(--sub);margin-top:3px}
-.pos-formula{font-size:.63rem;color:var(--muted);margin-top:3px;font-family:var(--mono)}
 .pos-sl{font-size:.68rem;color:var(--bear);margin-top:5px}
 
 /* ── TRADES ── */
@@ -230,16 +220,6 @@ canvas{display:block;width:100%!important}
 .sess-m{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
 .sess-a{background:#4d9fff18;color:var(--blue);border:1px solid #4d9fff30}
 
-/* ── LOG ── */
-.log-item{padding:12px 16px;border-bottom:1px solid var(--border)}
-.log-item:last-child{border-bottom:none}
-.log-top{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
-.log-date{font-size:.78rem;font-weight:600}
-.log-body{font-size:.72rem;color:var(--sub);line-height:1.55}
-.pill{font-size:.58rem;padding:2px 7px;border-radius:10px;font-weight:600}
-.pill-morn{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
-.pill-aft{background:#4d9fff18;color:var(--blue);border:1px solid #4d9fff30}
-.pill-t{background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)}
 
 /* ── AUTHOR ── */
 .pin-form{padding:20px 16px;display:flex;flex-direction:column;gap:12px;align-items:center}
@@ -367,7 +347,7 @@ canvas{display:block;width:100%!important}
       <div style="width:1px;height:10px;background:var(--border2)"></div>
       <div style="display:flex;align-items:center;gap:5px">
         <div class="sess-dot sess-pend" id="dotA"></div>
-        <span style="font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)" id="sessA">1:30 PM</span>
+        <span style="font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)" id="sessA">2:30 PM</span>
       </div>
       <div style="width:1px;height:10px;background:var(--border2)"></div>
       <div class="mkt-pill" id="sessMarket" style="font-size:.6rem;padding:2px 9px">—</div>
@@ -565,7 +545,7 @@ canvas{display:block;width:100%!important}
       <div class="collapse-inner">
         <div class="chart-wrap" style="position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent"><div id="chartScroller" style="min-width:100%">
           <canvas id="chart" height="160"></canvas></div>
-          <div id="chartEmpty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
+          <div id="chartEmpty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             <div style="font-size:.72rem;color:var(--sub);text-align:center;line-height:1.6">Building history as the experiment runs.<br><span style="font-size:.66rem;color:var(--muted)">More data points appear each trading day.</span></div>
           </div>
@@ -917,10 +897,6 @@ function renderKPIs(d){
   };
 }
 
-function renderRecon(totalPnl, realizedPnl, unrealisedPnl){
-  // Breakdown lives in the Total P&L ? tooltip — no standalone card needed
-}
-
 function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl){
   const d=exp?.totalDays||0, w=exp?.profitDays||0, l=exp?.lossDays||0;
   const winPct=d>0?Math.round((w/d)*100):0;
@@ -963,7 +939,7 @@ function renderSession(s){
     sessM.style.color=s.morningDone?"var(--neon)":s.nextSession==="morning"?"var(--gold)":"var(--sub)";
   }
   if(sessA){
-    sessA.textContent="1:30 PM";
+    sessA.textContent="2:30 PM";
     sessA.style.color=s.afternoonDone?"var(--neon)":s.nextSession==="afternoon"?"var(--gold)":"var(--sub)";
   }
   const mkt=document.getElementById("sessMarket");
@@ -1145,52 +1121,29 @@ function shareApp(){
 }
 
 // ── MARKET INDICES ────────────────────────────────────────────
-// Yahoo Finance blocks direct browser requests (CORS). Route through
-// the worker which fetches server-side and returns clean JSON.
+// Fetched via the Cloudflare worker /indices route — no CORS, no proxy needed.
 async function fetchIndices(){
   try{
-    const proxyBase = "https://api.allorigins.win/raw?url=";
-    const niftyUrl  = encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=2d");
-    const sensexUrl = encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=2d");
-
-    const [niftyRes, sensexRes] = await Promise.all([
-      fetch(proxyBase + niftyUrl),
-      fetch(proxyBase + sensexUrl)
-    ]);
-
-    const parseIndex = async (res) => {
-      if(!res.ok) return null;
-      const j = await res.json();
-      const m = j?.chart?.result?.[0]?.meta;
-      if(!m) return null;
-      const cp = m.regularMarketPrice;
-      const pc = m.chartPreviousClose || m.previousClose;
-      if(!cp || !pc) return null;
-      return { val: cp, chgPct: (cp - pc) / pc * 100 };
-    };
-
-    const [ni, se] = await Promise.all([
-      parseIndex(niftyRes),
-      parseIndex(sensexRes)
-    ]);
+    const res = await fetch(API + "/indices");
+    if(!res.ok) return;
+    const { nifty, sensex } = await res.json();
 
     const fmt    = v => Number(v).toLocaleString("en-IN", {maximumFractionDigits: 0});
     const fmtChg = p => (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
     const col    = p => p >= 0 ? "var(--neon)" : "var(--bear)";
 
-    if(ni){
-      document.getElementById("niftyVal").textContent = fmt(ni.val);
+    if(nifty){
+      document.getElementById("niftyVal").textContent = fmt(nifty.price);
       const el = document.getElementById("niftyChg");
-      el.textContent = fmtChg(ni.chgPct);
-      el.style.color = col(ni.chgPct);
+      el.textContent = fmtChg(nifty.changePct);
+      el.style.color = col(nifty.changePct);
     }
-    if(se){
-      document.getElementById("sensexVal").textContent = fmt(se.val);
+    if(sensex){
+      document.getElementById("sensexVal").textContent = fmt(sensex.price);
       const el = document.getElementById("sensexChg");
-      el.textContent = fmtChg(se.chgPct);
-      el.style.color = col(se.chgPct);
+      el.textContent = fmtChg(sensex.changePct);
+      el.style.color = col(sensex.changePct);
     }
-    // Update footer with live timestamp
     const dateEl = document.getElementById("marketDateLabel");
     if(dateEl){
       const now = new Date();
@@ -1200,7 +1153,7 @@ async function fetchIndices(){
       });
       dateEl.textContent = "As on " + label + " IST";
     }
-  } catch(e) { /* silent fail — bonus context, not critical */ }
+  } catch(e) { /* silent fail */ }
 }
 
 async function loadAll(){
