@@ -399,9 +399,9 @@ canvas{display:block;width:100%!important}
       <div style="flex:1;min-height:6px"></div>
       <!-- Win rate bar -->
       <div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <span style="font-size:.64rem;font-weight:600;color:var(--neon)" id="statWinLabel">—W</span>
-          <span style="font-size:.64rem;font-weight:400;color:var(--sub)" id="statWinRate">—</span>
+          <span style="font-size:.62rem;font-weight:400;color:var(--muted)">days up vs prior day</span>
           <span style="font-size:.64rem;font-weight:600;color:var(--bear)" id="statLossLabel">—L</span>
         </div>
         <div style="height:4px;border-radius:2px;background:var(--bear-dim);border:1px solid var(--bear-border);overflow:hidden">
@@ -645,37 +645,30 @@ const TIPS={
   cash:{title:"Cash Available",body:"The money Claude has not invested yet. This is the dry powder available for the next trade. When Claude buys a stock, this number goes down. When it sells, this number goes back up."},
   invested:{title:"Invested",body:"The total current market value of all open stock positions. This changes as stock prices move — if Claude's stocks go up, this number grows too."},
   totalpnl:{title:"Total P&L",html:true,body:`
-    <div style="font-size:.84rem;font-weight:400;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started. Tap any row to learn more.</div>
+    <div style="font-size:.84rem;font-weight:400;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started. All fees are already baked into these numbers.</div>
     <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
         <div>
           <div style="font-size:.76rem;font-weight:600;color:var(--text)">Realised P&L</div>
-          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Locked-in result from closed trades.<br>Sell fees already deducted inside this number.</div>
+          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Locked-in result from closed trades.<br>Buy and sell fees already deducted.</div>
         </div>
         <div id="tipRealised" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card)">
         <div>
           <div style="font-size:.76rem;font-weight:600;color:var(--text)">Unrealised P&L</div>
-          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Paper gain/loss on open positions right now.<br>Becomes real when Claude sells.</div>
+          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Paper gain/loss on open positions at live prices.<br>Buy fees deducted. Becomes real when Claude sells.</div>
         </div>
         <div id="tipUnrealised" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card)">
-        <div>
-          <div style="font-size:.76rem;font-weight:600;color:var(--text)">Buy fees (open positions)</div>
-          <div style="font-size:.7rem;font-weight:400;color:var(--sub);margin-top:2px;line-height:1.55">Buy-side charges embedded in avg price.<br>Will surface in Realised P&L when positions close.</div>
-        </div>
-        <div id="tipFees" style="font-family:var(--mono);font-size:.82rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
-      </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--card2);border:1px solid var(--border2);border-radius:10px">
-      <div style="font-size:.76rem;font-weight:600;color:var(--text)">Total P&L</div>
+      <div style="font-size:.76rem;font-weight:600;color:var(--text)">Total P&L = Realised + Unrealised</div>
       <div id="tipTotal" style="font-family:var(--mono);font-size:.9rem;font-weight:700">₹—</div>
     </div>`},
-  status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. The win rate bar shows how many trading days ended in profit vs loss — not portfolio return, just day count."},
+  status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with.\n\nProfit days / Loss days count trading days where the portfolio value rose or fell compared to the previous day's close — not compared to the ₹10,000 start. A day can count as a profit day even while the portfolio is still overall negative.\n\nCounts update after each session. If a trade happened late in the day, tap Refresh to see the corrected tally."},
   market:{title:"Market Pulse",body:"Nifty 50 and Sensex show where the broader Indian market closed today. Useful context — if both are deep red and Claude is only slightly down, it's actually outperforming the market."},
-  sessions:{title:"Why these times?",body:"These are Aaron's personal trading times — 9:30 AM when the market opens over breakfast, and 1:30 PM for a midday check over lunch. Claude trades at exactly these times every weekday, mimicking Aaron's own pattern but with an AI brain making every decision."}
+  sessions:{title:"Trading Sessions",body:"9:30 AM — market opens. Claude makes macro entries and exits while institutional order books are active and liquidity is strong.\n\n2:30 PM — portfolio review only. No new positions are opened. Claude can sell to take profit, cut a deteriorating hold, or do nothing. The earlier 1:30 PM slot was dropped — that is the post-lunch lull on NSE, the worst time for liquidity and execution quality. At 2:30 PM institutional desks re-engage for the closing session, giving real exit prices.\n\nBoth sessions only execute during live NSE market hours. A manual trigger outside these windows is blocked automatically to prevent trades at after-hours prices."}
 };
 let idleTimer=null;
 let nudgeFired=false;
@@ -774,15 +767,12 @@ function showTip(key){
     // Inject live values if available
     if(window._pnlSnapshot){
       const {totalPnl,realizedPnl,unrealisedPnl}=window._pnlSnapshot;
-      const feesInOpen=+(totalPnl-(realizedPnl+unrealisedPnl)).toFixed(2);
       const col=(v)=>`<span style="color:${v>=0?"var(--neon)":"var(--bear)"}">${v>=0?"+":""}${fINR(v)}</span>`;
       const r=document.getElementById("tipRealised");
       const u=document.getElementById("tipUnrealised");
-      const f=document.getElementById("tipFees");
       const tot=document.getElementById("tipTotal");
       if(r) r.innerHTML=col(realizedPnl);
       if(u) u.innerHTML=col(unrealisedPnl);
-      if(f) f.innerHTML=col(feesInOpen);
       if(tot) tot.innerHTML=col(totalPnl);
     }
   } else {
@@ -948,16 +938,37 @@ function renderSession(s){
   if(mkt){mkt.textContent=s.marketOpen?"Open":"Closed";mkt.className="mkt-pill "+(s.marketOpen?"mkt-open":"mkt-closed");}
 }
 
+function maskAIText(text){
+  if(!text) return text;
+  // Safe all-caps acronyms that should NEVER be masked
+  const SAFE=new Set(["RSI","SMA","NSE","BSE","ITT","AI","PM","AM","IT","FII","DII","GDP","RBI","SEBI","IPO","ETF","NAV","EPS","PE","PB","ROE","ROA","CAGR","EMI","NPA","FY","YOY","QOQ","MTM","PNL","INR","USD"]);
+  // Replace .NS suffixed tickers first (most specific)
+  text = text.replace(/\b([A-Z][A-Z0-9]{2,14})\.NS\b/g, "a position");
+  // Replace remaining all-caps words of 4+ chars that aren't in safe list
+  text = text.replace(/\b([A-Z]{4,})\b/g, (m) => SAFE.has(m) ? m : "a position");
+  // Also catch 3-char tickers that are pure caps and not safe (e.g. TCS, ITC)
+  text = text.replace(/\b([A-Z]{3})\b/g, (m) => SAFE.has(m) ? m : "a position");
+  // Clean up repeated "a position" chains: "a position, a position" → "held positions"
+  text = text.replace(/(a position)(,?\s*(and\s+)?a position)+/g, "held positions");
+  return text;
+}
+
 function renderAI(ins){
   const body=document.getElementById("aiBody");
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
-  document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
+  const outlook   = maskAIText(ins.marketOutlook||"—");
+  const analysis  = maskAIText(ins.analysis||"—");
+  const risk      = maskAIText(ins.riskAssessment||"");
+  const expNote   = maskAIText(ins.experimentNote||"");
+  const portNote  = maskAIText(ins.portfolioAssessment||"");
+  document.getElementById("claudeMeta").textContent=outlook.slice(0,45)||"Latest analysis";
   body.innerHTML=`<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
-    <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
-    <div class="ai-analysis">${ins.analysis||"—"}</div>
-    ${ins.riskAssessment?`<div class="ai-risk">${ins.riskAssessment}</div>`:""}
-    ${ins.experimentNote?`<div class="ai-exp">${ins.experimentNote}</div>`:""}`;
+    ${portNote?`<div class="ai-analysis" style="font-style:italic;margin-bottom:8px">${portNote}</div>`:""}
+    <div class="ai-outlook">${outlook}</div>
+    <div class="ai-analysis">${analysis}</div>
+    ${risk?`<div class="ai-risk">${risk}</div>`:""}
+    ${expNote?`<div class="ai-exp">${expNote}</div>`:""}`;
 }
 
 function renderPositions(positions){
@@ -1030,9 +1041,13 @@ function plainReason(reason, action, isStop){
     .trim().slice(0,60)||"—";
 }
 
-function renderTrades(trades){
+function renderTrades(trades, totalCount){
   const card=document.getElementById("tradesCard"),cnt=document.getElementById("tradeCount");
-  cnt.textContent=(trades?.length||0)+" trades";
+  const shown=trades?.length||0;
+  if(totalCount && totalCount>shown)
+    cnt.textContent=`Last ${shown} of ${totalCount} total`;
+  else
+    cnt.textContent=shown+" trade"+(shown!==1?"s":"");
   if(!trades?.length){card.innerHTML='<div class="empty"><span class="empty-icon">📋</span>No trades yet.</div>';return;}
   setTimeout(()=>updateHint("tradesCard","tradesHint"),50);
   card.innerHTML=trades.slice(0,12).map(t=>{
@@ -1183,7 +1198,9 @@ async function loadAll(){
     renderHero(port);renderKPIs(port);
     renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl);
     renderSession(port.todaySession||{});renderAI(port.insight);
-    renderPositions(port.positions||[]);renderTrades(port.recentTrades||[]);
+    renderPositions(port.positions||[]);
+    const totalTrades=(port.experiment?.aiDecisions||0)+(port.experiment?.stopLossFired||0);
+    renderTrades(port.recentTrades||[], totalTrades);
     fetchIndices(); // non-blocking — updates Nifty/Sensex independently
     if(port.snapshots?.length){
       window._chartData={labels:port.snapshots.map(s=>s.date),values:port.snapshots.map(s=>s.totalValue)};
