@@ -2,24 +2,22 @@ name: Neon Bull Backup Cron
 
 on:
   schedule:
-    # Morning session — 9:30 AM IST = 04:00 UTC
+    # Morning session only — 9:30 AM IST = 04:00 UTC
+    # V3 runs one session per day. Afternoon cron removed.
     - cron: '0 4 * * 1-5'
-    # Afternoon session — 2:30 PM IST = 09:00 UTC
-    - cron: '0 9 * * 1-5'
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Fire trading session
+      - name: Fire morning trading session
         run: |
           RESPONSE=$(curl -s -o response.txt -w "%{http_code}" \
-            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}")
+            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&session=morning")
           echo "HTTP status: $RESPONSE"
           echo "Response body:"
           cat response.txt
-          # Exit with error if not 200 so GitHub marks the run as failed
           if [ "$RESPONSE" != "200" ]; then
             echo "Worker returned non-200 status"
             exit 1
