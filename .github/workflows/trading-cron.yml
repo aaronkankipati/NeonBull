@@ -2,8 +2,7 @@ name: Neon Bull Backup Cron
 
 on:
   schedule:
-    # Morning session only — 9:30 AM IST = 04:00 UTC
-    # V3 runs one session per day. Afternoon cron removed.
+    # Single session — 9:30 AM IST = 04:00 UTC (V3: morning only)
     - cron: '0 4 * * 1-5'
 
 jobs:
@@ -14,7 +13,7 @@ jobs:
       - name: Fire morning trading session
         run: |
           RESPONSE=$(curl -s -o response.txt -w "%{http_code}" \
-            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&session=morning")
+            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}")
           echo "HTTP status: $RESPONSE"
           echo "Response body:"
           cat response.txt
