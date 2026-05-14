@@ -401,20 +401,16 @@ canvas{display:block;width:100%!important}
       </div>
       <!-- Footer -->
       <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)">Since 4 May 2026</div>
-          <div style="font-size:.56rem;color:var(--muted);margin-top:2px;font-style:italic" id="v3Note"></div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></div>
-          <div style="font-size:.58rem;color:var(--sub);margin-top:2px"><span id="slotIndicator">—</span> of 3 slots</div>
-        </div>
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="experimentStartLabel">Since 4 May 2026</span>
+        <span style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></span>
       </div>
       <!-- Hidden compat -->
       <span id="statProfit" style="display:none">—</span>
       <span id="statLoss" style="display:none">—</span>
       <span id="statProfitSub" style="display:none"></span>
       <span id="statLossSub" style="display:none"></span>
+      <span id="v3Note" style="display:none"></span>
+      <span id="slotIndicator" style="display:none"></span>
     </div>
 
     <!-- Card B: Market Pulse -->
@@ -672,7 +668,7 @@ const TIPS={
     </div>`},
   status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. Win days = the session ended with more money than it started. The slot indicator shows how many of Claude's 3 position slots are in use. V3 strategy uses ETFs and liquid stocks with stricter entry signals."},
   market:{title:"Market Pulse",body:"Nifty 50 and Sensex show where the broader Indian market closed today. Useful context — if both are deep red and Claude is only slightly down, it is actually outperforming the market."},
-  sessions:{title:"9:30 AM — Why this moment?",body:"NSE opens at 9:15 AM. The first 15 minutes are pre-open order matching. By 9:30 AM the overnight gap is priced in, institutional direction is clear, and volume is high with tight spreads. Claude makes one decision at this moment every weekday — reviews open positions, scans for new signals, then leaves the market alone for the day."}
+  sessions:{title:"How V4 runs each morning",body:"At 9:15 AM IST the data engine fetches live prices for all 25 instruments, computes RSI and trend signals in pure code, and reads ET Markets headlines for sector news. All four entry conditions are verified in code before Claude sees anything. At 9:30 AM IST Claude receives only the pre-qualified shortlist and makes one clean judgment call. No web search, no noise — just the instruments that already passed the filter."}
 };
 let idleTimer=null;
 let nudgeFired=false;
@@ -911,15 +907,12 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,port){
   if(wl) wl.textContent=w+" win"+(w!==1?"s":"");
   if(ll) ll.textContent=l+" loss"+(l!==1?"es":"");
   if(wr) wr.textContent=d>0?winPct+"% win rate":"—";
-  // Slot indicator
-  const slots=document.getElementById("slotIndicator");
-  if(slots) slots.textContent=port?.positions?.length??0;
-  // V3 note
-  const v3el=document.getElementById("v3Note");
-  if(v3el&&port?.v3StartDate){
-    const dt=new Date(port.v3StartDate+"T00:00:00Z");
+  // Start date — dynamic from API
+  const startEl=document.getElementById("experimentStartLabel");
+  if(startEl&&port?.experiment?.startDate){
+    const dt=new Date(port.experiment.startDate);
     const label=dt.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
-    v3el.textContent="V3 live from "+label;
+    startEl.textContent="Since "+label;
   }
   // Fee ratio
   const fees=exp?.totalChargesPaid||0;
@@ -946,25 +939,28 @@ function renderSession(s){
   const status=s.sessionStatus||"pending";
   if(dot){
     dot.className="sess-dot "+(
-      status==="traded"  ?"sess-done":
-      status==="reviewed"?"sess-done":
-      status==="pending" ?"sess-next":
+      status==="traded"     ?"sess-done":
+      status==="reviewed"   ?"sess-done":
+      status==="processing" ?"sess-next":
+      status==="pending"    ?"sess-next":
       "sess-pend"
     );
-    // Override colour for reviewed (amber) vs traded (green)
-    if(status==="reviewed"){dot.style.background="var(--gold)";dot.style.boxShadow="0 0 7px var(--gold)";}
+    if(status==="reviewed")  {dot.style.background="var(--gold)";dot.style.boxShadow="0 0 7px var(--gold)";}
+    else if(status==="processing"){dot.style.background="var(--blue)";dot.style.boxShadow="0 0 7px var(--blue)";}
     else{dot.style.background="";dot.style.boxShadow="";}
   }
   if(lbl){
     lbl.textContent=
-      status==="traded"  ?"Traded today":
-      status==="reviewed"?"Reviewed · no trades":
-      status==="closed"  ?"Market closed":
+      status==="traded"     ?"Traded today":
+      status==="reviewed"   ?"Reviewed · no trades":
+      status==="processing" ?"Data ready · deciding…":
+      status==="closed"     ?"Market closed":
       "Running at 9:30 AM";
     lbl.style.color=
-      status==="traded"  ?"var(--neon)":
-      status==="reviewed"?"var(--gold)":
-      status==="closed"  ?"var(--sub)":
+      status==="traded"     ?"var(--neon)":
+      status==="reviewed"   ?"var(--gold)":
+      status==="processing" ?"var(--blue)":
+      status==="closed"     ?"var(--sub)":
       "var(--gold)";
   }
   if(mkt){mkt.textContent=s.marketOpen?"Open":"Closed";mkt.className="mkt-pill "+(s.marketOpen?"mkt-open":"mkt-closed");}
