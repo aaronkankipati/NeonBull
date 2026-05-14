@@ -2,21 +2,33 @@ name: Neon Bull Backup Cron
 
 on:
   schedule:
-    # Single session — 9:30 AM IST = 04:00 UTC (V3: morning only)
+    # Phase 1: sentiment + market data — 9:30 AM IST = 04:00 UTC
     - cron: '0 4 * * 1-5'
+    # Phase 2: decisions + execution — 9:32 AM IST = 04:02 UTC
+    - cron: '2 4 * * 1-5'
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Fire morning trading session
+      - name: Detect phase and fire
         run: |
+          MINUTE=$(date -u +%M)
+          if [ "$MINUTE" -le "1" ]; then
+            PHASE="1"
+            echo "Firing Phase 1 (sentiment + market data)"
+          else
+            PHASE="2"
+            echo "Firing Phase 2 (decisions + execution)"
+          fi
+
           RESPONSE=$(curl -s -o response.txt -w "%{http_code}" \
-            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}")
+            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&phase=${PHASE}")
           echo "HTTP status: $RESPONSE"
           echo "Response body:"
           cat response.txt
+
           if [ "$RESPONSE" != "200" ]; then
             echo "Worker returned non-200 status"
             exit 1
