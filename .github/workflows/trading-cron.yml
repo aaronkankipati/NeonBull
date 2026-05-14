@@ -1,35 +1,36 @@
-name: Neon Bull Backup Cron
+name: Neon Bull V4 Backup Cron
 
 on:
   schedule:
-    # Phase 1: sentiment + market data — 9:30 AM IST = 04:00 UTC
+    # Step 1: data + filter + news — 9:15 AM IST = 03:45 UTC
+    - cron: '45 3 * * 1-5'
+    # Step 2: Claude decision + execution — 9:30 AM IST = 04:00 UTC
     - cron: '0 4 * * 1-5'
-    # Phase 2: decisions + execution — 9:32 AM IST = 04:02 UTC
-    - cron: '2 4 * * 1-5'
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Detect phase and fire
+      - name: Detect step and fire
         run: |
           MINUTE=$(date -u +%M)
-          if [ "$MINUTE" -le "1" ]; then
-            PHASE="1"
-            echo "Firing Phase 1 (sentiment + market data)"
+          if [ "$MINUTE" -ge "40" ]; then
+            STEP="1"
+            echo "Firing Step 1 — data fetch, filter, RSS news"
           else
-            PHASE="2"
-            echo "Firing Phase 2 (decisions + execution)"
+            STEP="2"
+            echo "Firing Step 2 — Claude decision and execution"
           fi
 
           RESPONSE=$(curl -s -o response.txt -w "%{http_code}" \
-            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&phase=${PHASE}")
+            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&step=${STEP}")
+
           echo "HTTP status: $RESPONSE"
-          echo "Response body:"
+          echo "Response:"
           cat response.txt
 
           if [ "$RESPONSE" != "200" ]; then
-            echo "Worker returned non-200 status"
+            echo "Worker returned non-200"
             exit 1
           fi
