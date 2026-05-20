@@ -662,9 +662,9 @@ const TIPS={
       <div style="font-size:.72rem;font-weight:700;color:var(--text)">Total P&L</div>
       <div id="tipTotal" style="font-family:var(--mono);font-size:.88rem;font-weight:700">₹—</div>
     </div>`},
-  status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. Win days = the session ended with more money than it started. V4 uses ETFs and liquid stocks under ₹400, with all four entry conditions verified in code before Claude sees any candidate."},
+  status:{title:"Experiment Status",body:"Whether Claude is ahead or behind the ₹10,000 it started with. Win days = the session ended with more money than it started. V5 uses a relative weakness model — sector ETFs are only bought when they are significantly underperforming the market in a bullish regime. On bearish days the system sits in cash, which counts as a neutral day, not a loss."},
   market:{title:"Market Pulse",body:"Nifty 50 and Sensex show where the broader Indian market closed today. Useful context — if both are deep red and Claude is only slightly down, it is actually outperforming the market."},
-  sessions:{title:"How V4 runs each morning",body:"At 9:15 AM IST the data engine fetches live prices for all 25 instruments, computes RSI and trend signals in pure code, and reads ET Markets headlines for sector news. All four entry conditions are verified in code before Claude sees anything. At 9:30 AM IST Claude receives only the pre-qualified shortlist and makes one clean judgment call. No web search, no noise — just the instruments that already passed the filter."}
+  sessions:{title:"How V5 runs each morning",body:"At 9:15 AM IST the system first checks NIFTYBEES RSI and SMA20 — the market regime filter. Bearish market = hold only, no new entries. Bullish market = each sector ETF is scored by how far it underperforms the market (relRSI). Only ETFs significantly weaker than the market, near their 52-week low, and showing early signs of turning qualify as candidates. At 9:30 AM IST Claude receives the 0-3 pre-qualified candidates and validates whether news breaks the mean-reversion thesis."},
 };
 let idleTimer=null;
 let nudgeFired=false;
@@ -901,12 +901,15 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,port){
   if(wl) wl.textContent=w+" win"+(w!==1?"s":"");
   if(ll) ll.textContent=l+" loss"+(l!==1?"es":"");
   if(wr) wr.textContent=d>0?winPct+"% win rate":"—";
-  // Start date — dynamic from API
+  // Start date — check v5 → v4 → v3 → experiment.startDate
   const startEl=document.getElementById("experimentStartLabel");
-  if(startEl&&port?.experiment?.startDate){
-    const dt=new Date(port.experiment.startDate);
-    const label=dt.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
-    startEl.textContent="Since "+label;
+  if(startEl){
+    const dateStr=port?.v5StartDate||port?.v4StartDate||port?.v3StartDate||port?.experiment?.startDate;
+    if(dateStr){
+      const dt=new Date(dateStr);
+      const label=dt.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+      startEl.textContent="Since "+label;
+    }
   }
   // Status verdict
   const p=totalPnl||0;
@@ -941,17 +944,20 @@ function renderSession(s){
     else{dot.style.background="";dot.style.boxShadow="";}
   }
   if(lbl){
+    const isBearish=window._regime==="BEARISH";
     lbl.textContent=
       status==="traded"     ?"Traded today":
       status==="reviewed"   ?"Reviewed · no trades":
       status==="processing" ?"Data ready · deciding…":
       status==="closed"     ?"Market closed":
+      isBearish             ?"Bearish regime · holding":
       "Running at 9:30 AM";
     lbl.style.color=
       status==="traded"     ?"var(--neon)":
       status==="reviewed"   ?"var(--gold)":
       status==="processing" ?"var(--blue)":
       status==="closed"     ?"var(--sub)":
+      isBearish             ?"var(--bear)":
       "var(--gold)";
   }
   if(mkt){mkt.textContent=s.marketOpen?"Open":"Closed";mkt.className="mkt-pill "+(s.marketOpen?"mkt-open":"mkt-closed");}
@@ -962,7 +968,20 @@ function renderAI(ins){
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
   document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
-  body.innerHTML=`<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
+  // Regime pill — V5 only (ins.regime field). Falls back gracefully for V4 insights.
+  const regimePill=ins.regime
+    ?`<div style="margin-bottom:8px">
+        <span style="font-size:.6rem;font-weight:600;letter-spacing:.08em;padding:3px 10px;border-radius:20px;${
+          ins.regime==="BULLISH"
+            ?"background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)"
+            :"background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)"
+        }">
+          ${ins.regime==="BULLISH"?"▲":"▼"} MARKET ${ins.regime}
+        </span>
+        ${ins.regimeReason?`<div style="font-size:.64rem;color:var(--sub);margin-top:5px;line-height:1.4">${ins.regimeReason}</div>`:""}
+      </div>`
+    :"";
+  body.innerHTML=`${regimePill}<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
     ${ins.portfolioAssessment?`<div style="font-size:.76rem;color:var(--sub);font-style:italic;margin-bottom:10px;line-height:1.5;border-left:2px solid var(--border2);padding-left:10px">${ins.portfolioAssessment}</div>`:""}
     <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
     <div class="ai-analysis">${ins.analysis||"—"}</div>
@@ -1022,17 +1041,24 @@ function plainReason(reason, action, isStop){
   const r=reason.toLowerCase();
   const isBuy=action==="BUY";
   if(!isBuy){
-    if(r.includes("stop loss")||r.includes("stop-loss")||r.includes("approaching stop")) return "Getting too close to the safety exit";
+    // V5 exit reasons
+    if(r.includes("mean reversion complete")||r.includes("normalised")||r.includes("relrsi")) return "Mean reversion complete — sector caught up with market";
+    if(r.includes("relative")||r.includes("rel rsi")) return "Sector performance normalised vs market";
+    if(r.includes("stop loss")||r.includes("stop-loss")) return "Getting too close to the safety exit";
     if(r.includes("overbought")||r.includes("rsi 7")||r.includes("rsi 8")||r.includes("rsi 9")) return "Looked too expensive to hold";
     if(r.includes("target")||r.includes("profit")) return "Taking profit at target";
     if(r.includes("sma20")||r.includes("below sma")||r.includes("trend broken")) return "Trend reversed — thesis broken";
     if(r.includes("reduce")||r.includes("exposure")) return "Reducing risk";
     if(r.includes("sector rotation")) return "Rotating out of this sector";
+    if(r.includes("regime")||r.includes("bearish")) return "Market turned bearish — exiting";
   }
   if(isBuy){
-    if(r.includes("oversold")||r.includes("rsi 1")||r.includes("rsi 2")||r.includes("deeply")) return "ETF/stock heavily discounted";
-    if(r.includes("reversal")||r.includes("sma5")||r.includes("crossover")) return "Reversal signal confirmed";
-    if(r.includes("30d low")||r.includes("near low")||r.includes("floor")) return "Trading near its 30-day floor";
+    // V5 entry reasons
+    if(r.includes("relative weakness")||r.includes("underperform")||r.includes("relrsi")) return "Sector underperforming market — mean reversion setup";
+    if(r.includes("oversold")||r.includes("rsi 1")||r.includes("rsi 2")||r.includes("deeply")) return "ETF heavily discounted";
+    if(r.includes("reversal")||r.includes("sma5")||r.includes("turning")) return "Reversal signal confirmed";
+    if(r.includes("52w low")||r.includes("52-week")||r.includes("floor")) return "Near 52-week structural support";
+    if(r.includes("30d low")||r.includes("near low")) return "Trading near its recent floor";
     if(r.includes("volume")||r.includes("vol ")) return "Volume confirmed the move";
     if(r.includes("sector")||r.includes("etf")) return "Sector ETF showing strong signal";
     if(r.includes("commodity")||r.includes("gold")||r.includes("silver")) return "Commodity signal spotted";
@@ -1043,6 +1069,7 @@ function plainReason(reason, action, isStop){
   return reason.split(".")[0]
     .replace(/rsi\s*[\d.]+/gi,"")
     .replace(/sma\d+/gi,"")
+    .replace(/relrsi\s*[\d.-]+/gi,"")
     .replace(/\[position\]/gi,"position")
     .replace(/,?\s{2,}/g," ")
     .trim().slice(0,60)||"—";
@@ -1199,7 +1226,10 @@ async function loadAll(){
     }
     renderHero(port);renderKPIs(port);
     renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl,port);
-    renderSession(port.todaySession||{});renderAI(port.insight);
+    renderSession(port.todaySession||{});
+    // Store regime for renderSession's bearish state label
+    window._regime=port.insight?.regime||null;
+    renderAI(port.insight);
     renderPositions(port.positions||[]);renderTrades(port.recentTrades||[]);
     fetchIndices(); // non-blocking — updates Nifty/Sensex independently
     if(port.snapshots?.length){
