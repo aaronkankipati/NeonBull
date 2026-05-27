@@ -901,16 +901,8 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,port){
   if(wl) wl.textContent=w+" win"+(w!==1?"s":"");
   if(ll) ll.textContent=l+" loss"+(l!==1?"es":"");
   if(wr) wr.textContent=d>0?winPct+"% win rate":"—";
-  // Start date — check v5 → v4 → v3 → experiment.startDate
-  const startEl=document.getElementById("experimentStartLabel");
-  if(startEl){
-    const dateStr=port?.v5StartDate||port?.v4StartDate||port?.v3StartDate||port?.experiment?.startDate;
-    if(dateStr){
-      const dt=new Date(dateStr);
-      const label=dt.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
-      startEl.textContent="Since "+label;
-    }
-  }
+  // Start date — hardcoded to true experiment start (4 May 2026)
+  // KV experiment.startDate reflects last reset, not the original start
   // Status verdict
   const p=totalPnl||0;
   const sc=document.getElementById("statusCard");
