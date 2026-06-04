@@ -4,18 +4,18 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>NEON BULL — AI Trading the Indian Market</title>
-<meta name="description" content="I gave Claude AI ₹1,00,000 and zero human override. It trades NSE every day at breakfast and lunch. Watch it live."/>
+<meta name="description" content="I gave Claude AI ₹1,00,000 and zero human override. It makes one trading decision every morning at 9:30 AM IST. Watch it live."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://aaronkankipati.github.io/NeonBull"/>
 <meta property="og:title" content="NEON BULL — AI Trading the Indian Market"/>
-<meta property="og:description" content="I gave Claude AI ₹1,00,000 and zero human override. It trades NSE every day at breakfast and lunch. Watch it live."/>
+<meta property="og:description" content="I gave Claude AI ₹1,00,000 and zero human override. It makes one trading decision every morning at 9:30 AM IST. Watch it live."/>
 <meta property="og:image" content="https://aaronkankipati.github.io/NeonBull/og-image.png"/>
 <meta property="og:image:type" content="image/png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="NEON BULL — AI Trading the Indian Market"/>
-<meta name="twitter:description" content="I gave Claude AI ₹1,00,000 and zero human override. It trades NSE every day at breakfast and lunch. Watch it live."/>
+<meta name="twitter:description" content="I gave Claude AI ₹1,00,000 and zero human override. It makes one trading decision every morning at 9:30 AM IST. Watch it live."/>
 <meta name="twitter:image" content="https://aaronkankipati.github.io/NeonBull/og-image.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -433,9 +433,7 @@ canvas{display:block;width:100%!important}
         <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="experimentStartLabel">Since —</span>
         <span style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></span>
       </div>
-      <!-- Hidden compat -->
-      <span id="v3Note" style="display:none"></span>
-      <span id="slotIndicator" style="display:none"></span>
+      </div>
     </div>
 
     <!-- Card B: Market Pulse -->
@@ -745,31 +743,24 @@ function renderBuildLog(liveVersion){
 // ── TOOLTIPS ──────────────────────────────────────────────────
 const TIPS={
   portfolio:{title:"Total Portfolio Value",body:"Everything Claude has right now — cash plus the live market value of all open stock positions. The momentum experiment started at ₹1,00,000."},
-  cash:{title:"Cash Available",body:"The money Claude has not deployed yet. When Claude buys a stock it goes down — when it sells it comes back up. Claude keeps a small ₹200 buffer and aims to stay mostly invested, since idle cash earns nothing in a momentum strategy."},
+  cash:{title:"Cash Available",body:"The money Claude has not deployed yet. When Claude buys a stock it goes down — when it sells it comes back up. Claude keeps a ₹1,000 buffer and aims to stay mostly invested, since idle cash earns nothing in a momentum strategy."},
   invested:{title:"Invested",body:"The current market value of all open positions. Changes live as prices move. Claude runs a concentrated book — usually 1 to 3 large positions — so that fixed brokerage costs stay a tiny fraction of each trade."},
   totalpnl:{title:"Total P&L",html:true,body:`
-    <div style="font-size:.82rem;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started. Tap any row to learn more.</div>
+    <div style="font-size:.82rem;color:var(--sub);line-height:1.7;margin-bottom:14px">How much Claude is up or down since the experiment started.</div>
     <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
         <div>
           <div style="font-size:.72rem;font-weight:700;color:var(--text)">Realised P&L</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Locked-in result from closed trades.<br>Sell fees already deducted inside this number.</div>
+          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Locked-in result from closed trades. Sell fees already deducted.</div>
         </div>
         <div id="tipRealised" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--border)">
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Unrealised P&L</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Paper gain/loss on open positions right now.<br>Becomes real when Claude sells.</div>
-        </div>
-        <div id="tipUnrealised" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
-      </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:11px 14px;background:var(--card)">
         <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Buy fees (open positions)</div>
-          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Buy-side charges embedded in avg price.<br>Will surface in Realised P&L when positions close.</div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--text)">Unrealised P&L</div>
+          <div style="font-size:.66rem;color:var(--sub);margin-top:2px">Live paper gain/loss on open positions. Buy fees are baked into avg price, so this already reflects the full cost of entry.</div>
         </div>
-        <div id="tipFees" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
+        <div id="tipUnrealised" style="font-family:var(--mono);font-size:.8rem;font-weight:700;white-space:nowrap;padding-left:12px">₹—</div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--card2);border:1px solid var(--border2);border-radius:10px">
@@ -877,15 +868,12 @@ function showTip(key){
     // Inject live values if available
     if(window._pnlSnapshot){
       const {totalPnl,realizedPnl,unrealisedPnl}=window._pnlSnapshot;
-      const feesInOpen=+(totalPnl-(realizedPnl+unrealisedPnl)).toFixed(2);
       const col=(v)=>`<span style="color:${v>=0?"var(--neon)":"var(--bear)"}">${v>=0?"+":""}${fINR(v)}</span>`;
       const r=document.getElementById("tipRealised");
       const u=document.getElementById("tipUnrealised");
-      const f=document.getElementById("tipFees");
       const tot=document.getElementById("tipTotal");
       if(r) r.innerHTML=col(realizedPnl);
       if(u) u.innerHTML=col(unrealisedPnl);
-      if(f) f.innerHTML=col(feesInOpen);
       if(tot) tot.innerHTML=col(totalPnl);
     }
   } else {
@@ -900,14 +888,14 @@ function toggleSection(id){
   const s=document.getElementById(id);
   s.classList.toggle("open");
   if(id==="sec-chart"&&s.classList.contains("open")&&window._chartData)
-    setTimeout(()=>drawChart(window._chartData.labels,window._chartData.values),50);
+    setTimeout(()=>drawChart(window._chartData.labels,window._chartData.values,window._chartData.bench),50);
   // Refresh fades when sections open — content now visible
   if(id==="sec-positions") setTimeout(()=>updateHint("posCard","posHint"),450);
   if(id==="sec-trades")    setTimeout(()=>updateHint("tradesCard","tradesHint"),450);
 }
 
 // ── CHART ─────────────────────────────────────────────────────
-function drawChart(labels,values){
+function drawChart(labels,values,benchValues){
   const canvas=document.getElementById("chart");
   if(!canvas||!values.length)return;
   const dpr=devicePixelRatio||1;
@@ -925,7 +913,10 @@ function drawChart(labels,values){
   const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
   const pad={t:10,r:8,b:28,l:52};
   const w=W-pad.l-pad.r,h=H-pad.t-pad.b;
-  const mn=Math.min(...values)*0.998,mx=Math.max(...values)*1.002;
+  // Scale to fit both Claude and NIFTY lines
+  const benchClean=(benchValues||[]).filter(v=>v!=null);
+  const allVals=values.concat(benchClean);
+  const mn=Math.min(...allVals)*0.998,mx=Math.max(...allVals)*1.002;
   const ys=h/(mx-mn||1),xs=w/(values.length-1||1);
   const pts=values.map((v,i)=>({x:pad.l+i*xs,y:pad.t+(mx-v)*ys}));
   const isUp=values[values.length-1]>=values[0];
@@ -944,11 +935,27 @@ function drawChart(labels,values){
     ctx.fillStyle="#3a4a65";ctx.font="9px JetBrains Mono";
     ctx.fillText("₹"+(mx-(mx-mn)/3*i).toFixed(0),2,y+4);
   }
+  // Claude fill
   const g=ctx.createLinearGradient(0,pad.t,0,pad.t+h);
   g.addColorStop(0,lc+"44");g.addColorStop(1,lc+"00");
   ctx.beginPath();ctx.moveTo(pts[0].x,pad.t+h);
   pts.forEach(p=>ctx.lineTo(p.x,p.y));
   ctx.lineTo(pts[pts.length-1].x,pad.t+h);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  // NIFTY benchmark — dashed blue, drawn above fill but below Claude's bold line
+  if(benchClean.length>1){
+    ctx.strokeStyle="#4d9fff";ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.lineJoin="round";
+    ctx.beginPath();let started=false;
+    (benchValues||[]).forEach((v,i)=>{
+      if(v==null){started=false;return;}
+      const x=pad.l+i*xs,y=pad.t+(mx-v)*ys;
+      if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);
+    });
+    ctx.stroke();ctx.setLineDash([]);
+    let li=-1;(benchValues||[]).forEach((v,i)=>{if(v!=null)li=i;});
+    if(li>=0){const x=pad.l+li*xs,y=pad.t+(mx-benchValues[li])*ys;
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="#4d9fff";ctx.fill();}
+  }
+  // Claude line on top
   ctx.beginPath();ctx.strokeStyle=lc;ctx.lineWidth=2.5;ctx.lineJoin="round";
   pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
   const ep=pts[pts.length-1];
@@ -1055,20 +1062,17 @@ function renderSession(s){
     else{dot.style.background="";dot.style.boxShadow="";}
   }
   if(lbl){
-    const isBearish=window._regime==="BEARISH";
     lbl.textContent=
       status==="traded"     ?"Traded today":
       status==="reviewed"   ?"Reviewed · no trades":
       status==="processing" ?"Data ready · deciding…":
       status==="closed"     ?"Market closed":
-      isBearish             ?"Bearish regime · holding":
       "Running at 9:30 AM";
     lbl.style.color=
       status==="traded"     ?"var(--neon)":
       status==="reviewed"   ?"var(--gold)":
       status==="processing" ?"var(--blue)":
       status==="closed"     ?"var(--sub)":
-      isBearish             ?"var(--bear)":
       "var(--gold)";
   }
   if(mkt){mkt.textContent=s.marketOpen?"Open":"Closed";mkt.className="mkt-pill "+(s.marketOpen?"mkt-open":"mkt-closed");}
@@ -1079,20 +1083,7 @@ function renderAI(ins){
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
   document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
-  // Regime pill — V5 only (ins.regime field). Falls back gracefully for V4 insights.
-  const regimePill=ins.regime
-    ?`<div style="margin-bottom:8px">
-        <span style="font-size:.6rem;font-weight:600;letter-spacing:.08em;padding:3px 10px;border-radius:20px;${
-          ins.regime==="BULLISH"
-            ?"background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border)"
-            :"background:var(--bear-dim);color:var(--bear);border:1px solid var(--bear-border)"
-        }">
-          ${ins.regime==="BULLISH"?"▲":"▼"} MARKET ${ins.regime}
-        </span>
-        ${ins.regimeReason?`<div style="font-size:.64rem;color:var(--sub);margin-top:5px;line-height:1.4">${ins.regimeReason}</div>`:""}
-      </div>`
-    :"";
-  body.innerHTML=`${regimePill}<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
+  body.innerHTML=`<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
     ${ins.portfolioAssessment?`<div style="font-size:.76rem;color:var(--sub);font-style:italic;margin-bottom:10px;line-height:1.5;border-left:2px solid var(--border2);padding-left:10px">${ins.portfolioAssessment}</div>`:""}
     <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
     <div class="ai-analysis">${ins.analysis||"—"}</div>
@@ -1110,9 +1101,7 @@ function renderPositions(positions){
     if(hasGain)      gainLine=`<span class="bull">+${fINR(p.unrealisedPnl)} (${fPct(p.unrealisedPnlPct)})</span>`;
     else if(hasLoss) gainLine=`<span class="bear">${fINR(p.unrealisedPnl)} (${fPct(p.unrealisedPnlPct)})</span>`;
     else             gainLine=`<span style="color:var(--sub)">No gain yet</span>`;
-    const typeBadge=p.type==="ETF"
-      ?`<span style="font-size:.58rem;padding:1px 6px;border-radius:8px;background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon-border);font-weight:600">ETF</span>`
-      :`<span style="font-size:.58rem;padding:1px 6px;border-radius:8px;background:#4d9fff18;color:var(--blue);border:1px solid #4d9fff30;font-weight:600">STOCK</span>`;
+    const typeBadge=`<span style="font-size:.58rem;padding:1px 6px;border-radius:8px;background:#4d9fff18;color:var(--blue);border:1px solid #4d9fff30;font-weight:600">STOCK</span>`;
     const sectorLabel=p.sector?`<span style="font-size:.6rem;color:var(--sub)">${p.sector}</span>`:"";
     return`<div class="pos-item">
       <div class="pos-top">
@@ -1334,22 +1323,30 @@ async function loadAll(){
     renderHero(port);renderKPIs(port);
     renderStats(port.experiment,port.realizedPnl,port.totalPnl,port.unrealisedPnl,port);
     renderSession(port.todaySession||{});
-    // Store regime for renderSession's bearish state label
-    window._regime=port.insight?.regime||null;
+    window._regime=null; // V6 has no regime
     renderAI(port.insight);
     renderPositions(port.positions||[]);renderTrades(port.recentTrades||[]);
-    fetchIndices(); // non-blocking — updates Nifty/Sensex independently
+    fetchIndices();
     if(port.snapshots?.length){
-      window._chartData={labels:port.snapshots.map(s=>s.date),values:port.snapshots.map(s=>s.totalValue)};
-      document.getElementById("chartMeta").textContent=fPct(port.totalPnlPct)+" total return";
+      window._chartData={
+        labels:port.snapshots.map(s=>s.date),
+        values:port.snapshots.map(s=>s.totalValue),
+        bench:port.snapshots.map(s=>s.benchmarkValue??null)
+      };
+      const hasBench=window._chartData.bench.some(v=>v!=null);
+      const niftyPct=port.benchmark?.pnlPct;
+      document.getElementById("chartMeta").textContent=
+        (hasBench&&niftyPct!=null)
+          ? fPct(port.totalPnlPct)+" · NIFTY "+fPct(niftyPct)
+          : fPct(port.totalPnlPct)+" total return";
       const sec=document.getElementById("sec-chart");
-      // Show empty state if only 1 data point — not enough for a meaningful line
       const chartEmpty=document.getElementById("chartEmpty");
       const hasEnoughData=window._chartData.values.length>1;
       if(chartEmpty){chartEmpty.style.display=hasEnoughData?"none":"flex";}
       const chartEl=document.getElementById("chart");
       if(chartEl){chartEl.style.display=hasEnoughData?"block":"none";}
-      if(hasEnoughData&&sec.classList.contains("open"))drawChart(window._chartData.labels,window._chartData.values);
+      if(hasEnoughData&&sec.classList.contains("open"))
+        drawChart(window._chartData.labels,window._chartData.values,window._chartData.bench);
     }
   }catch(e){
     const b=document.getElementById("setupBanner");b.style.display="block";
