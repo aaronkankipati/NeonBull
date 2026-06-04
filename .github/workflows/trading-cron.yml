@@ -1,36 +1,73 @@
-name: Neon Bull V4 Backup Cron
+name: NEON BULL · Backup Trigger
+
+# Fires 5 minutes after the Cloudflare cron.
+# If Cloudflare already ran → worker returns {"status":"already_ran"} → no action.
+# If Cloudflare missed    → GitHub steps in and fires the real decision.
+# Zero cost: just a curl. No double trades possible.
 
 on:
   schedule:
-    # Step 1: data + filter + news — 9:15 AM IST = 03:45 UTC
-    - cron: '45 3 * * 1-5'
-    # Step 2: Claude decision + execution — 9:30 AM IST = 04:00 UTC
-    - cron: '0 4 * * 1-5'
+    # Morning backup  — 04:05 UTC = 9:35 AM IST  (Cloudflare fires at 04:00)
+    - cron: '5 4 * * 1-5'
+    # Afternoon backup — 09:05 UTC = 2:35 PM IST  (Cloudflare fires at 09:00)
+    - cron: '5 9 * * 1-5'
+
+  # Manual trigger — useful for testing or forcing a run from the GitHub UI
+  workflow_dispatch:
+    inputs:
+      session:
+        description: 'Session to force (morning or afternoon). Leave blank for auto.'
+        required: false
+        default: ''
 
 jobs:
   trigger:
+    name: Ping worker
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-      - name: Detect step and fire
+      - name: Determine session param
+        id: session
         run: |
-          MINUTE=$(date -u +%M)
-          if [ "$MINUTE" -ge "40" ]; then
-            STEP="1"
-            echo "Firing Step 1 — data fetch, filter, RSS news"
+          if [ -n "${{ github.event.inputs.session }}" ]; then
+            echo "param=&session=${{ github.event.inputs.session }}" >> $GITHUB_OUTPUT
           else
-            STEP="2"
-            echo "Firing Step 2 — Claude decision and execution"
+            echo "param=" >> $GITHUB_OUTPUT
           fi
 
-          RESPONSE=$(curl -s -o response.txt -w "%{http_code}" \
-            "${{ secrets.WORKER_URL }}/run-now?secret=${{ secrets.MANUAL_SECRET }}&step=${STEP}")
+      - name: Fire /run-now
+        id: run
+        run: |
+          RESPONSE=$(curl -sf --max-time 60 \
+            "https://neon-bull.kankipati-aaron.workers.dev/run-now?secret=${{ secrets.NEON_BULL_SECRET }}${{ steps.session.outputs.param }}")
+          echo "response=$RESPONSE" >> $GITHUB_OUTPUT
+          echo "$RESPONSE" | python3 -m json.tool || echo "$RESPONSE"
 
-          echo "HTTP status: $RESPONSE"
-          echo "Response:"
-          cat response.txt
-
-          if [ "$RESPONSE" != "200" ]; then
-            echo "Worker returned non-200"
-            exit 1
-          fi
+      - name: Interpret result
+        run: |
+          STATUS=$(echo '${{ steps.run.outputs.response }}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+          echo "Worker status: $STATUS"
+          case $STATUS in
+            already_ran)
+              echo "✅ Cloudflare already ran — backup not needed today."
+              ;;
+            success)
+              TRADES=$(echo '${{ steps.run.outputs.response }}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tradesExecuted',0))" 2>/dev/null || echo "?")
+              echo "🐂 Backup fired the decision. Trades executed: $TRADES"
+              ;;
+            paused)
+              echo "⏸️  Experiment is paused."
+              ;;
+            market_closed)
+              echo "🔒 Market closed — NSE holiday or weekend."
+              ;;
+            snapshot_only)
+              echo "📸 Afternoon mark-to-market snapshot recorded."
+              ;;
+            *)
+              echo "⚠️  Unexpected status: $STATUS"
+              echo "Full response: ${{ steps.run.outputs.response }}"
+              exit 1
+              ;;
+          esac
