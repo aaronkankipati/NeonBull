@@ -430,7 +430,7 @@ canvas{display:block;width:100%!important}
       </div>
       <!-- Footer -->
       <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="experimentStartLabel">Since 4 May 2026</span>
+        <span style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)" id="experimentStartLabel">Since —</span>
         <span style="font-size:.6rem;font-weight:600;color:var(--gold)">Day <span style="font-family:var(--disp);font-size:1.05rem;letter-spacing:.04em;vertical-align:middle" id="statDays">—</span></span>
       </div>
       <!-- Hidden compat -->
@@ -1016,8 +1016,12 @@ function renderStats(exp,realizedPnl,totalPnl,unrealisedPnl,port){
   if(wl) wl.textContent=w+" win"+(w!==1?"s":"");
   if(ll) ll.textContent=l+" loss"+(l!==1?"es":"");
   if(wr) wr.textContent=d>0?winPct+"% win rate":"—";
-  // Start date — hardcoded to true experiment start (4 May 2026)
-  // KV experiment.startDate reflects last reset, not the original start
+  // Start date — read from createdAt (reset on /reset, so always reflects the current experiment start)
+  const startEl=document.getElementById("experimentStartLabel");
+  if(startEl&&port?.createdAt){
+    const sd=new Date(port.createdAt);
+    startEl.textContent="Since "+sd.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Kolkata"});
+  }
   // Status verdict
   const p=totalPnl||0;
   const sc=document.getElementById("statusCard");
