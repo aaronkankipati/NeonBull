@@ -1080,14 +1080,53 @@ function renderSession(s){
 function renderAI(ins){
   const body=document.getElementById("aiBody");
   if(!ins){body.innerHTML='<div class="empty"><span class="empty-icon">🤖</span>Waiting for first session…</div>';return;}
+
+  // ── Stock name scrubber ───────────────────────────────────────
+  // All ticker forms Claude might write in prose, ordered longest-first
+  // so "ADANIPORTS" is replaced before "ADANI" could partially match it.
+  const STOCK_TOKENS=[
+    // Full .NS tickers
+    "RELIANCE.NS","TCS.NS","HDFCBANK.NS","INFY.NS","ICICIBANK.NS",
+    "HINDUNILVR.NS","SBIN.NS","BAJFINANCE.NS","BHARTIARTL.NS","KOTAKBANK.NS",
+    "LT.NS","WIPRO.NS","HCLTECH.NS","ASIANPAINT.NS","AXISBANK.NS",
+    "MARUTI.NS","SUNPHARMA.NS","TITAN.NS","ULTRACEMCO.NS","NESTLEIND.NS",
+    "TECHM.NS","POWERGRID.NS","NTPC.NS","TATAMOTORS.NS","ONGC.NS",
+    "JSWSTEEL.NS","TATASTEEL.NS","ADANIENT.NS","ADANIPORTS.NS","BAJAJFINSV.NS",
+    // Plain names Claude writes in prose — longest first to avoid partial matches
+    "ADANIPORTS","HINDUNILVR","BAJAJFINSV","ULTRACEMCO","TATAMOTORS",
+    "TATASTEEL","ADANIENT","BHARTIARTL","BAJFINANCE","KOTAKBANK",
+    "ASIANPAINT","ICICIBANK","POWERGRID","HDFCBANK","SUNPHARMA",
+    "JSWSTEEL","HCLTECH","RELIANCE","AXISBANK","NESTLEIND",
+    "MARUTI","WIPRO","TECHM","TITAN","NTPC","ONGC","INFY",
+    "SBIN","TCS","LT",
+    // Common prose aliases Claude uses
+    "Adani Ports","Adani Enterprises","Adani duo","Tech Mahindra",
+    "HCL Tech","Bajaj Finance","Bajaj Finserv","Asian Paints",
+    "Tata Motors","Tata Steel","Hindustan Unilever",
+    "Bharti Airtel","Kotak Bank","Kotak Mahindra","Axis Bank",
+    "HDFC Bank","ICICI Bank","State Bank","Nestle India","Sun Pharma",
+    "Maruti Suzuki","JSW Steel","Power Grid","Ultratech Cement",
+  ];
+  function maskText(text){
+    if(!text) return text;
+    let out=text;
+    for(const tok of STOCK_TOKENS){
+      // Case-insensitive whole-word-ish replace (handles TECHM, TechM, techm)
+      const re=new RegExp(tok.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+      out=out.replace(re,"[stock]");
+    }
+    return out;
+  }
+
   const confCls={"HIGH":"conf-high","MEDIUM":"conf-med","LOW":"conf-low"}[ins.confidence]||"conf-med";
-  document.getElementById("claudeMeta").textContent=ins.marketOutlook?.slice(0,45)||"Latest analysis";
+  // Mask the collapse-meta subtitle too
+  document.getElementById("claudeMeta").textContent=maskText(ins.marketOutlook)?.slice(0,45)||"Latest analysis";
   body.innerHTML=`<span class="ai-confidence ${confCls}">${ins.confidence||"MEDIUM"} CONFIDENCE</span>
-    ${ins.portfolioAssessment?`<div style="font-size:.76rem;color:var(--sub);font-style:italic;margin-bottom:10px;line-height:1.5;border-left:2px solid var(--border2);padding-left:10px">${ins.portfolioAssessment}</div>`:""}
-    <div class="ai-outlook">${ins.marketOutlook||"—"}</div>
-    <div class="ai-analysis">${ins.analysis||"—"}</div>
-    ${ins.riskAssessment?`<div class="ai-risk">${ins.riskAssessment}</div>`:""}
-    ${ins.experimentNote?`<div class="ai-exp">${ins.experimentNote}</div>`:""}`;
+    ${ins.portfolioAssessment?`<div style="font-size:.76rem;color:var(--sub);font-style:italic;margin-bottom:10px;line-height:1.5;border-left:2px solid var(--border2);padding-left:10px">${maskText(ins.portfolioAssessment)}</div>`:""}
+    <div class="ai-outlook">${maskText(ins.marketOutlook)||"—"}</div>
+    <div class="ai-analysis">${maskText(ins.analysis)||"—"}</div>
+    ${ins.riskAssessment?`<div class="ai-risk">${maskText(ins.riskAssessment)}</div>`:""}
+    ${ins.experimentNote?`<div class="ai-exp">${maskText(ins.experimentNote)}</div>`:""}`;
 }
 
 function renderPositions(positions){
