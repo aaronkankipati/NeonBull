@@ -1,43 +1,42 @@
-name: NEON BULL · Daily Trading Trigger
+name: NEON BULL · Trading Watchdog
 
-# ── HOW THIS WORKS ─────────────────────────────────────────────
+# ── WHY A WATCHDOG ─────────────────────────────────────────────
+# GitHub Actions scheduled crons are NOT punctual — they can be
+# 15-60 minutes late or silently skipped under load. A single cron
+# at 9:30 AM is therefore unreliable as the sole trigger.
 #
-# GitHub Actions is the SOLE cron trigger for NEON BULL.
-# The Cloudflare Worker (worker.js) and its KV storage still live
-# on Cloudflare — GitHub cannot replace those. But the scheduled
-# triggers that kick off each session are 100% here.
+# This watchdog runs every 5 minutes during market hours only.
+# Each run takes ~3 seconds if nothing needs doing (just a state
+# check). It only does real work when the session window is open
+# AND the session hasn't run yet. Max latency: 5 minutes.
 #
-# THREE CRONS:
-#   1. 04:00 UTC (9:30 AM IST)  — morning decision, the only AI call
-#   2. 04:45 UTC (10:15 AM IST) — catch-up: fires only if morning failed
-#   3. 09:00 UTC (2:30 PM IST)  — afternoon mark-to-market (free, no AI)
+# WINDOWS (IST):
+#   Morning   9:25 AM – 10:30 AM  → fires morning decision once
+#   Afternoon 2:25 PM – 3:30 PM   → fires afternoon snapshot once
 #
-# WHAT "BULLETPROOF" MEANS HERE:
-#   - Always checks /portfolio first → skips if session already ran
-#   - 3 attempts with 3-minute gaps before declaring failure
-#   - Catch-up cron at 10:15 AM as a final safety net
-#   - No double trades possible (already_ran guard)
-#   - Full response logged on every attempt — no silent failures
+# COST: ~66 Actions minutes/month of your 2,000 free minutes.
 #
-# SETUP (one-time, required):
-#   Repo → Settings → Secrets and variables → Actions → New secret
-#   Name:  NEON_BULL_SECRET
+# SETUP (required once):
+#   Repo → Settings → Secrets → Actions → New secret
+#   Name : NEON_BULL_SECRET
 #   Value: neonbull2024
 #
-# CLOUDFLARE: delete both crons (45 3 and 0 4) — no longer needed.
-#             Keep the Worker and KV binding — those are the API server.
+# CLOUDFLARE: delete both crons from Trigger Events — not needed.
+#             Keep the Worker + KV binding untouched.
 # ───────────────────────────────────────────────────────────────
 
 on:
   schedule:
-    - cron: '0 4 * * 1-5'    # 9:30 AM IST — morning decision
-    - cron: '45 4 * * 1-5'   # 10:15 AM IST — catch-up safety net
-    - cron: '0 9 * * 1-5'    # 2:30 PM IST  — afternoon snapshot
+    # Every 5 minutes during morning window (3:55 AM – 5:00 AM UTC = 9:25–10:30 AM IST)
+    - cron: '55,0,5,10,15,20,25,30,35,40,45,50 3-4 * * 1-5'
+    # Every 5 minutes during afternoon window (8:55 AM – 10:00 AM UTC = 2:25–3:30 PM IST)
+    - cron: '55,0,5,10,15,20,25,30,35,40,45,50 8-9 * * 1-5'
 
+  # Manual trigger — force any session from the GitHub UI
   workflow_dispatch:
     inputs:
       session:
-        description: 'Force a session: morning or afternoon (leave blank = auto)'
+        description: 'Force session: morning or afternoon (blank = auto)'
         required: false
         default: ''
 
@@ -45,24 +44,55 @@ env:
   WORKER: https://neon-bull.kankipati-aaron.workers.dev
 
 jobs:
-  trade:
-    name: Run trading session
+  watchdog:
+    name: Watchdog
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
 
     steps:
 
-      # ── 1. Read current portfolio state ──────────────────────
-      - name: Read portfolio state
-        id: state
+      # ── 1. Check time window + portfolio state ──────────────
+      - name: Should I act?
+        id: check
         run: |
-          PORTFOLIO=$(curl -s --max-time 20 "${{ env.WORKER }}/portfolio" || echo '{}')
+          # Current IST time
+          IST_HOUR=$(TZ='Asia/Kolkata' date +%-H)
+          IST_MIN=$(TZ='Asia/Kolkata' date +%-M)
+          IST_TIME=$((IST_HOUR * 60 + IST_MIN))
+          echo "IST time: ${IST_HOUR}:$(printf '%02d' $IST_MIN)"
 
-          MORNING_DONE=$(echo "$PORTFOLIO" | python3 -c "
-          import sys,json
-          try: print(str(json.load(sys.stdin).get('todaySession',{}).get('morningDone',False)).lower())
-          except: print('false')
-          " 2>/dev/null || echo 'false')
+          # Time windows in minutes since midnight IST
+          MORNING_START=$((9*60+25))    # 9:25 AM
+          MORNING_END=$((10*60+30))     # 10:30 AM
+          AFTERNOON_START=$((14*60+25)) # 2:25 PM
+          AFTERNOON_END=$((15*60+30))   # 3:30 PM
+
+          # Forced session from manual trigger overrides window check
+          FORCED="${{ github.event.inputs.session }}"
+
+          if [ -n "$FORCED" ]; then
+            SESSION="$FORCED"
+            IN_WINDOW="true"
+          elif [ $IST_TIME -ge $MORNING_START ] && [ $IST_TIME -le $MORNING_END ]; then
+            SESSION="morning"
+            IN_WINDOW="true"
+          elif [ $IST_TIME -ge $AFTERNOON_START ] && [ $IST_TIME -le $AFTERNOON_END ]; then
+            SESSION="afternoon"
+            IN_WINDOW="true"
+          else
+            SESSION="none"
+            IN_WINDOW="false"
+          fi
+
+          echo "session=$SESSION"       >> $GITHUB_OUTPUT
+          echo "in_window=$IN_WINDOW"   >> $GITHUB_OUTPUT
+
+          if [ "$IN_WINDOW" = "false" ]; then
+            echo "⏰ Outside trading windows — nothing to do." && exit 0
+          fi
+
+          # Read portfolio state
+          PORTFOLIO=$(curl -s --max-time 15 "${{ env.WORKER }}/portfolio" || echo '{}')
 
           TRADING_DAY=$(echo "$PORTFOLIO" | python3 -c "
           import sys,json
@@ -70,108 +100,123 @@ jobs:
           except: print('true')
           " 2>/dev/null || echo 'true')
 
-          # Determine which session this trigger is for
-          FORCED="${{ github.event.inputs.session }}"
-          UTC_HOUR=$(date -u +%-H)
-          if   [ -n "$FORCED" ];         then SESSION="$FORCED"
-          elif [ "$UTC_HOUR" -ge 9 ];    then SESSION="afternoon"
-          else                                SESSION="morning"
+          MORNING_DONE=$(echo "$PORTFOLIO" | python3 -c "
+          import sys,json
+          try: print(str(json.load(sys.stdin).get('todaySession',{}).get('morningDone',False)).lower())
+          except: print('false')
+          " 2>/dev/null || echo 'false')
+
+          AFTERNOON_DONE=$(echo "$PORTFOLIO" | python3 -c "
+          import sys,json
+          try: print(str(json.load(sys.stdin).get('todaySession',{}).get('afternoonDone',False)).lower())
+          except: print('false')
+          " 2>/dev/null || echo 'false')
+
+          echo "trading_day=$TRADING_DAY"       >> $GITHUB_OUTPUT
+          echo "morning_done=$MORNING_DONE"     >> $GITHUB_OUTPUT
+          echo "afternoon_done=$AFTERNOON_DONE" >> $GITHUB_OUTPUT
+
+          echo "Trading day  : $TRADING_DAY"
+          echo "Morning done : $MORNING_DONE"
+          echo "Afternoon done: $AFTERNOON_DONE"
+
+          # Decide if action needed
+          SHOULD_RUN="false"
+          if [ "$TRADING_DAY" = "false" ]; then
+            echo "📅 Not a trading day."
+          elif [ "$SESSION" = "morning" ] && [ "$MORNING_DONE" = "false" ]; then
+            SHOULD_RUN="true"
+            echo "✅ Morning window open and session not yet run — will fire."
+          elif [ "$SESSION" = "afternoon" ] && [ "$AFTERNOON_DONE" = "false" ]; then
+            SHOULD_RUN="true"
+            echo "✅ Afternoon window open and snapshot not yet taken — will fire."
+          else
+            echo "✅ Session already done — skipping."
           fi
 
-          echo "morning_done=$MORNING_DONE"  >> $GITHUB_OUTPUT
-          echo "trading_day=$TRADING_DAY"    >> $GITHUB_OUTPUT
-          echo "session=$SESSION"            >> $GITHUB_OUTPUT
+          echo "should_run=$SHOULD_RUN" >> $GITHUB_OUTPUT
 
-          echo "─────────────────────────────────"
-          echo " Session     : $SESSION"
-          echo " Trading day : $TRADING_DAY"
-          echo " Morning done: $MORNING_DONE"
-          echo "─────────────────────────────────"
-
-      # ── 2. Exit early if nothing to do ───────────────────────
-      - name: Skip — not a trading day
-        if: steps.state.outputs.trading_day == 'false'
-        run: echo "📅 NSE holiday or weekend — nothing to do."
-
-      - name: Skip — morning already ran
-        if: |
-          steps.state.outputs.trading_day == 'true' &&
-          steps.state.outputs.session == 'morning' &&
-          steps.state.outputs.morning_done == 'true'
-        run: echo "✅ Morning session already ran today — skipping."
-
-      # ── 3. Fire the worker (up to 3 attempts) ────────────────
+      # ── 2. Fire with up to 3 attempts ──────────────────────
       - name: Fire — attempt 1
-        if: |
-          steps.state.outputs.trading_day == 'true' &&
-          (steps.state.outputs.session == 'afternoon' ||
-           steps.state.outputs.morning_done == 'false')
+        if: steps.check.outputs.should_run == 'true'
         id: a1
         continue-on-error: true
-        env:
-          SESSION: ${{ steps.state.outputs.session }}
         run: |
-          echo "▶ Attempt 1 (session: $SESSION)"
+          SESSION="${{ steps.check.outputs.session }}"
+          echo "▶ Attempt 1 — $SESSION"
           R=$(curl -s --max-time 120 \
             "${{ env.WORKER }}/run-now?secret=${{ secrets.NEON_BULL_SECRET }}&session=$SESSION")
           echo "$R" | python3 -m json.tool 2>/dev/null || echo "$R"
-          STATUS=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null || echo "error")
+          STATUS=$(echo "$R" | python3 -c "
+          import sys,json
+          try: print(json.load(sys.stdin).get('status','error'))
+          except: print('error')
+          " 2>/dev/null || echo 'error')
           echo "status=$STATUS" >> $GITHUB_OUTPUT
           [[ "$STATUS" =~ ^(success|already_ran|snapshot_only|market_closed|paused)$ ]]
 
-      - name: Retry — wait 3 min
-        if: steps.a1.outcome == 'failure'
-        run: echo "⏳ Attempt 1 failed — waiting 3 minutes..." && sleep 180
+      - name: Wait before retry
+        if: steps.check.outputs.should_run == 'true' && steps.a1.outcome == 'failure'
+        run: echo "⏳ Attempt 1 failed — waiting 3 min..." && sleep 180
 
       - name: Fire — attempt 2
-        if: steps.a1.outcome == 'failure'
+        if: steps.check.outputs.should_run == 'true' && steps.a1.outcome == 'failure'
         id: a2
         continue-on-error: true
-        env:
-          SESSION: ${{ steps.state.outputs.session }}
         run: |
-          echo "▶ Attempt 2 (session: $SESSION)"
+          SESSION="${{ steps.check.outputs.session }}"
+          echo "▶ Attempt 2 — $SESSION"
           R=$(curl -s --max-time 120 \
             "${{ env.WORKER }}/run-now?secret=${{ secrets.NEON_BULL_SECRET }}&session=$SESSION")
           echo "$R" | python3 -m json.tool 2>/dev/null || echo "$R"
-          STATUS=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null || echo "error")
+          STATUS=$(echo "$R" | python3 -c "
+          import sys,json
+          try: print(json.load(sys.stdin).get('status','error'))
+          except: print('error')
+          " 2>/dev/null || echo 'error')
           echo "status=$STATUS" >> $GITHUB_OUTPUT
           [[ "$STATUS" =~ ^(success|already_ran|snapshot_only|market_closed|paused)$ ]]
 
-      - name: Retry — wait 3 more min
-        if: steps.a1.outcome == 'failure' && steps.a2.outcome == 'failure'
-        run: echo "⏳ Attempt 2 failed — waiting 3 more minutes..." && sleep 180
+      - name: Wait before final retry
+        if: steps.check.outputs.should_run == 'true' && steps.a1.outcome == 'failure' && steps.a2.outcome == 'failure'
+        run: echo "⏳ Attempt 2 failed — waiting 3 more min..." && sleep 180
 
       - name: Fire — attempt 3 (final)
-        if: steps.a1.outcome == 'failure' && steps.a2.outcome == 'failure'
+        if: steps.check.outputs.should_run == 'true' && steps.a1.outcome == 'failure' && steps.a2.outcome == 'failure'
         id: a3
-        env:
-          SESSION: ${{ steps.state.outputs.session }}
         run: |
-          echo "▶ Attempt 3 — final (session: $SESSION)"
+          SESSION="${{ steps.check.outputs.session }}"
+          echo "▶ Attempt 3 (final) — $SESSION"
           R=$(curl -s --max-time 120 \
             "${{ env.WORKER }}/run-now?secret=${{ secrets.NEON_BULL_SECRET }}&session=$SESSION")
           echo "$R" | python3 -m json.tool 2>/dev/null || echo "$R"
-          STATUS=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null || echo "error")
+          STATUS=$(echo "$R" | python3 -c "
+          import sys,json
+          try: print(json.load(sys.stdin).get('status','error'))
+          except: print('error')
+          " 2>/dev/null || echo 'error')
           if [[ ! "$STATUS" =~ ^(success|already_ran|snapshot_only|market_closed|paused)$ ]]; then
-            echo "❌ All 3 attempts failed. Check the worker logs."
+            echo "❌ All 3 attempts failed. Check worker logs."
             exit 1
           fi
-          echo "✅ Attempt 3 succeeded — status: $STATUS"
+          echo "✅ Attempt 3 succeeded — $STATUS"
 
-      # ── 4. Summary ───────────────────────────────────────────
+      # ── 3. Summary ─────────────────────────────────────────
       - name: Summary
         if: always()
-        env:
-          S1: ${{ steps.a1.outputs.status }}
-          S2: ${{ steps.a2.outputs.status }}
         run: |
-          if   [ "$S1" = "success" ];      then echo "🐂 Ran on attempt 1"
-          elif [ "$S1" = "already_ran" ];  then echo "✅ Already ran (other trigger beat us)"
-          elif [ "$S2" = "success" ];      then echo "🐂 Ran on attempt 2 (attempt 1 was a blip)"
-          elif [ "$S2" = "already_ran" ];  then echo "✅ Already ran by attempt 2 check"
-          elif [ "${{ steps.a3.outcome }}" = "success" ]; then echo "🐂 Ran on attempt 3"
-          elif [ "${{ steps.state.outputs.trading_day }}" = "false" ]; then echo "📅 Not a trading day"
-          elif [ "${{ steps.state.outputs.morning_done }}" = "true" ]; then echo "✅ Already ran today"
-          else echo "❌ All attempts failed — check logs above"
+          S1="${{ steps.a1.outputs.status }}"
+          S2="${{ steps.a2.outputs.status }}"
+          RAN="${{ steps.check.outputs.should_run }}"
+          WIN="${{ steps.check.outputs.in_window }}"
+          TD="${{ steps.check.outputs.trading_day }}"
+
+          if   [ "$WIN"  = "false" ];    then echo "⏰ Outside window — no-op ($(TZ='Asia/Kolkata' date '+%H:%M IST'))"
+          elif [ "$TD"   = "false" ];    then echo "📅 Not a trading day"
+          elif [ "$RAN"  = "false" ];    then echo "✅ Already done — skipped"
+          elif [ "$S1"   = "success" ];  then echo "🐂 Traded — attempt 1"
+          elif [ "$S1"   = "already_ran" ]; then echo "✅ Already ran"
+          elif [ "$S2"   = "success" ];  then echo "🐂 Traded — attempt 2"
+          elif [ "${{ steps.a3.outcome }}" = "success" ]; then echo "🐂 Traded — attempt 3"
+          else echo "❌ Failed — check logs"
           fi
